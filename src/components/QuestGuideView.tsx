@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { QuestGuide, QuestProgress, ScreenReaderResult } from '../types/quest';
 import { openWikiUrl } from '../services/storage';
 import { useSmartDetect } from '../hooks/useSmartDetect';
-import RequirementsPanel from './RequirementsPanel';
 import StepPanel from './StepPanel';
 
 interface QuestGuideViewProps {
@@ -49,6 +48,17 @@ export default function QuestGuideView({
     onProgressChange({ currentStepIndex: Math.max(0, Math.min(index, steps.length - 1)) });
   };
 
+  const markStepDone = () => {
+    const stepId = currentStep.id;
+    const completed = new Set(progress.completedSteps);
+    completed.add(stepId);
+    const nextIndex = Math.min(currentIndex + 1, steps.length - 1);
+    onProgressChange({
+      completedSteps: Array.from(completed),
+      currentStepIndex: nextIndex > currentIndex ? nextIndex : currentIndex,
+    });
+  };
+
   return (
     <div className="quest-guide compact">
       <div className="guide-header compact">
@@ -57,17 +67,6 @@ export default function QuestGuideView({
         <button type="button" className="btn-ghost btn-sm" onClick={onRefresh}>↻</button>
       </div>
 
-      {metadata.items.length > 0 && (
-        <RequirementsPanel
-          metadata={metadata}
-          collectedItems={progress.collectedItems ?? []}
-          bankItems={progress.bankItems ?? []}
-          needGeItems={progress.needGeItems ?? []}
-          scanning={!lastScan}
-          bankOpen={lastScan?.bankOpen ?? false}
-        />
-      )}
-
       {steps.length > 0 ? (
         <>
           <StepPanel
@@ -75,19 +74,61 @@ export default function QuestGuideView({
             stepNumber={currentIndex + 1}
             totalSteps={steps.length}
             isCompleted={progress.completedSteps.includes(currentStep.id)}
+            metadata={metadata}
+            collectedItems={progress.collectedItems ?? []}
+            bankItems={progress.bankItems ?? []}
+            needGeItems={progress.needGeItems ?? []}
+            bankOpen={lastScan?.bankOpen ?? false}
           />
 
           <div className="step-nav compact">
-            <button type="button" className="btn-nav btn-sm" disabled={currentIndex === 0} onClick={() => goToStep(currentIndex - 1)}>←</button>
+            <button
+              type="button"
+              className="btn-nav btn-sm"
+              disabled={currentIndex === 0}
+              onClick={() => goToStep(currentIndex - 1)}
+            >
+              ←
+            </button>
+            <button type="button" className="btn-done btn-sm" onClick={markStepDone}>
+              Done
+            </button>
             <span className="scan-live">
               {lastScan?.bankOpen ? '🏦 Bank' : '👁 Auto'}
             </span>
-            <button type="button" className="btn-nav btn-sm" disabled={currentIndex >= steps.length - 1} onClick={() => goToStep(currentIndex + 1)}>→</button>
+            <button
+              type="button"
+              className="btn-nav btn-sm"
+              disabled={currentIndex >= steps.length - 1}
+              onClick={() => goToStep(currentIndex + 1)}
+            >
+              →
+            </button>
           </div>
+
+          <details className="all-steps compact-steps">
+            <summary>All steps ({steps.length})</summary>
+            <ul className="step-checklist">
+              {steps.map((step, i) => (
+                <li key={step.id} className={progress.completedSteps.includes(step.id) ? 'done' : ''}>
+                  <button
+                    type="button"
+                    className={`step-link ${i === currentIndex ? 'current' : ''}`}
+                    onClick={() => goToStep(i)}
+                  >
+                    <span className="step-section">{step.sectionTitle}</span>
+                    <span className="step-preview">{step.text.slice(0, 60)}…</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </details>
         </>
       ) : (
         <div className="no-steps">
-          <button type="button" className="btn-primary btn-sm" onClick={() => openWikiUrl(metadata.wikiUrl)}>Wiki Guide</button>
+          <button type="button" className="btn-primary btn-sm" onClick={() => openWikiUrl(metadata.wikiUrl)}>
+            Wiki Guide
+          </button>
         </div>
       )}
     </div>

@@ -28,11 +28,12 @@ function ensureDataDir(): void {
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 300,
-    height: 340,
+    width: 320,
+    height: 320,
     minWidth: 280,
-    minHeight: 280,
-    maxHeight: 480,
+    minHeight: 260,
+    maxWidth: 360,
+    maxHeight: 400,
     transparent: true,
     frame: false,
     alwaysOnTop: true,

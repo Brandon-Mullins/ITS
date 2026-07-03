@@ -543,9 +543,22 @@
 
 /* Travel hints */
 .travel-hints {
-  margin-top: 8px;
+  margin-top: 6px;
   padding-top: 6px;
   border-top: 1px solid var(--border);
+}
+
+.travel-destination {
+  display: block;
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.travel-fallback {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 0;
 }
 
 .travel-hint-block {
@@ -590,6 +603,93 @@
   padding: 0 3px;
   margin-left: 3px;
   vertical-align: middle;
+}
+
+/* Step panel sections */
+.step-section {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.step-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  list-style: none;
+}
+
+.step-section summary {
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.step-items {
+  margin-top: 4px;
+}
+
+.dialogue-list,
+.combat-list {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+}
+
+.dialogue-list li {
+  font-size: 10px;
+  line-height: 1.4;
+  color: #a8c8ff;
+  padding: 2px 0 2px 8px;
+  border-left: 2px solid rgba(106, 176, 255, 0.4);
+}
+
+.combat-list li {
+  font-size: 10px;
+  line-height: 1.4;
+  color: #f8a8a8;
+  padding: 2px 0;
+}
+
+.combat-section .step-section-title {
+  color: #f88;
+}
+
+.btn-done {
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(90, 158, 74, 0.5);
+  background: rgba(90, 158, 74, 0.2);
+  color: #8fd87a;
+  transition: background 0.15s;
+}
+
+.btn-done:hover {
+  background: rgba(90, 158, 74, 0.35);
+}
+
+.compact-steps {
+  margin-top: 4px;
+  font-size: 10px;
+}
+
+.compact-steps summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+.item-row.item-pending .item-label {
+  color: #c88;
+}
+
+.item-badge.pending {
+  background: rgba(200, 80, 80, 0.15);
+  color: #c88;
 }
 
 /* Quest guide */

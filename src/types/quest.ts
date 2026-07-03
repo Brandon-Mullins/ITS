@@ -29,6 +29,9 @@ export interface QuestStep {
   text: string;
   order: number;
   travelHints: TravelHint[];
+  stepItems: string[];
+  dialogueChoices: string[];
+  combatWarnings: string[];
 }
 
 export interface QuestGuide {

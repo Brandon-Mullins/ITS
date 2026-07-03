@@ -80,6 +80,10 @@ const WITHDRAW_PHRASES = [
   'you add',
   'you grab',
   'you take out',
+  'you use the',
+  'you use your',
+  'you use a',
+  'you use an',
 ];
 
 const STEP_COMPLETE_PHRASES = [
@@ -89,6 +93,34 @@ const STEP_COMPLETE_PHRASES = [
   'congratulations',
   'you finish',
   'you complete',
+  'quest journal updated',
+  'journal has been updated',
+  'your quest journal',
+  'progress on your quest',
+  'you have made progress',
+  'you talk to',
+  'you speak to',
+  'you say',
+  'you tell',
+  'you answer',
+];
+
+const DIALOGUE_PHRASES = [
+  'you talk to',
+  'you speak to',
+  'you have a conversation',
+  'they say',
+  'he says',
+  'she says',
+];
+
+const LOCATION_PHRASES = [
+  'you arrive',
+  'you enter',
+  'you walk to',
+  'you travel to',
+  'you teleport to',
+  'you find yourself',
 ];
 
 type CaptureRegion = 'full' | 'chat' | 'bank' | 'inventory';
@@ -257,15 +289,22 @@ export async function scanGameScreen(
       ? config.stepKeywords
       : extractStepKeywords(config.currentStepText);
 
-  const keywordHits = stepKeywords.filter((kw) => chatNorm.includes(kw)).length;
+  const keywordHits = stepKeywords.filter((kw) => combined.includes(kw)).length;
+  const chatKeywordHits = stepKeywords.filter((kw) => chatNorm.includes(kw)).length;
   const hasCompletePhrase = STEP_COMPLETE_PHRASES.some((p) => chatNorm.includes(p));
-  const hasAction =
-    WITHDRAW_PHRASES.some((p) => chatNorm.includes(p)) ||
-    chatNorm.includes('you talk') ||
-    chatNorm.includes('you speak');
+  const hasDialogue = DIALOGUE_PHRASES.some((p) => chatNorm.includes(p));
+  const hasLocation = LOCATION_PHRASES.some((p) => chatNorm.includes(p));
+  const hasWithdraw = WITHDRAW_PHRASES.some((p) => chatNorm.includes(p));
+  const hasJournalUpdate =
+    chatNorm.includes('journal') &&
+    (chatNorm.includes('updated') || chatNorm.includes('progress'));
 
   const suggestStepComplete =
-    hasCompletePhrase || (keywordHits >= 2 && hasAction) || (keywordHits >= 1 && hasCompletePhrase);
+    hasCompletePhrase ||
+    hasJournalUpdate ||
+    (chatKeywordHits >= 2 && (hasDialogue || hasWithdraw || hasLocation)) ||
+    (chatKeywordHits >= 1 && hasCompletePhrase) ||
+    (keywordHits >= 2 && (hasDialogue || hasWithdraw));
 
   return {
     timestamp: new Date().toISOString(),

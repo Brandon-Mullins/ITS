@@ -1,4 +1,5 @@
-import { extractWikiLinks, getTravelHints } from '../utils/travel-hints';
+import { extractWikiLinks, getTravelHints } from '../data/travel-hints';
+import { parseDialogueHints, parseCombatWarnings, itemsMentionedInStep } from '../utils/step-parser';
 
 const WIKI_API = 'https://runescape.wiki/api.php';
 const WIKI_BASE = 'https://runescape.wiki';
@@ -71,7 +72,7 @@ async function wikiFetch<T>(params: Record<string, string>): Promise<T> {
   }
 
   const response = await fetch(url.toString(), {
-    headers: { 'User-Agent': 'RS3QuestHelperOverlay/0.1 (educational overlay; no automation)' },
+    headers: { 'User-Agent': 'RS3QuestHelperOverlay/0.4 (educational overlay; no automation)' },
   });
 
   if (!response.ok) {
@@ -248,7 +249,13 @@ async function fetchSectionWikitext(pageName: string, sectionIndex: string): Pro
   return data.parse?.wikitext ?? '';
 }
 
-function wikitextToSteps(wikitext: string, sectionTitle: string, baseOrder: number): import('../types/quest').QuestStep[] {
+function wikitextToSteps(
+  wikitext: string,
+  sectionTitle: string,
+  baseOrder: number,
+  questItems: string[],
+  questKills: string[],
+): import('../types/quest').QuestStep[] {
   const steps: import('../types/quest').QuestStep[] = [];
   const lines = wikitext.split('\n');
 
@@ -265,6 +272,9 @@ function wikitextToSteps(wikitext: string, sectionTitle: string, baseOrder: numb
       text,
       order: order++,
       travelHints: getTravelHints(text, links),
+      stepItems: itemsMentionedInStep(text, questItems),
+      dialogueChoices: parseDialogueHints(rawText, text),
+      combatWarnings: parseCombatWarnings(text, questKills),
     });
   };
 
@@ -346,18 +356,22 @@ export async function fetchQuestGuide(pageName: string): Promise<import('../type
 
   // Add start step from metadata
   if (metadata.start) {
+    const startText = metadata.start;
     steps.push({
       id: 'start-0',
       sectionTitle: 'Getting started',
-      text: metadata.start,
+      text: startText,
       order: order++,
-      travelHints: getTravelHints(metadata.start),
+      travelHints: getTravelHints(startText),
+      stepItems: itemsMentionedInStep(startText, metadata.items),
+      dialogueChoices: parseDialogueHints(startText, startText),
+      combatWarnings: parseCombatWarnings(startText, metadata.kills),
     });
   }
 
   for (const section of sections) {
     const wikitext = await fetchSectionWikitext(pageName, section.index);
-    const sectionSteps = wikitextToSteps(wikitext, section.line, order);
+    const sectionSteps = wikitextToSteps(wikitext, section.line, order, metadata.items, metadata.kills);
     steps.push(...sectionSteps);
     order += sectionSteps.length;
   }

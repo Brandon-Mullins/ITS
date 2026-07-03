@@ -27,10 +27,10 @@ function getItemState(
 }
 
 const STATE_LABELS: Record<ItemState, string> = {
-  inventory: '✓ In inventory',
+  inventory: '✓ Ready',
   bank: '🏦 In bank',
   ge: '🛒 Buy on GE',
-  pending: '… Scanning',
+  pending: '… Missing',
 };
 
 export default function RequirementsPanel({
