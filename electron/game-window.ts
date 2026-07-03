@@ -1,5 +1,6 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { screen } from 'electron';
 import type { BrowserWindow } from 'electron';
 
 const execFileAsync = promisify(execFile);
@@ -19,7 +20,14 @@ export interface GameWindowInfo {
 }
 
 const RS3_TITLE_PATTERNS = [/runescape/i, /jagex.*nxt/i];
-const EXCLUDE_PATTERNS = [/quest helper/i, /devtools/i, /visual studio/i, /cursor/i];
+const EXCLUDE_PATTERNS = [
+  /quest helper/i,
+  /devtools/i,
+  /visual studio/i,
+  /cursor/i,
+  /jagex launcher/i,
+  /launcher/i,
+];
 
 const POWERSHELL_SCRIPT = `
 Add-Type @"
@@ -32,13 +40,14 @@ public class Win32 {
   [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
   [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
   [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);
   [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
   [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
   [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
   public static List<object[]> GetWindows() {
     var results = new List<object[]>();
     EnumWindows((hWnd, lParam) => {
-      if (!IsWindowVisible(hWnd)) return true;
+      if (!IsWindowVisible(hWnd) || IsIconic(hWnd)) return true;
       var sb = new StringBuilder(256);
       GetWindowText(hWnd, sb, 256);
       var title = sb.ToString();
@@ -92,7 +101,8 @@ export async function findGameWindow(): Promise<GameWindowInfo> {
       const height = parseInt(parts[4], 10);
       const processId = parseInt(parts[5], 10);
 
-      if (width < 200 || height < 200) continue;
+      // RS3 client is never tiny — skip launcher popups etc.
+      if (width < 640 || height < 480) continue;
 
       candidates.push({
         found: true,
@@ -102,7 +112,6 @@ export async function findGameWindow(): Promise<GameWindowInfo> {
       });
     }
 
-    // Prefer exact "RuneScape" title, then largest window
     candidates.sort((a, b) => {
       const aExact = /^runescape$/i.test(a.title) ? 1 : 0;
       const bExact = /^runescape$/i.test(b.title) ? 1 : 0;
@@ -119,12 +128,49 @@ export async function findGameWindow(): Promise<GameWindowInfo> {
 }
 
 const OVERLAY_WIDTH = 380;
-const ATTACH_POLL_MS = 400;
+const ATTACH_POLL_MS = 500;
+
+function computeOverlayBounds(
+  game: WindowBounds,
+  overlayWidth: number,
+  preferredHeight: number,
+): WindowBounds {
+  const display = screen.getDisplayMatching({
+    x: game.x + Math.floor(game.width / 2),
+    y: game.y + Math.floor(game.height / 2),
+    width: 1,
+    height: 1,
+  });
+
+  const work = display.workArea;
+  const overlayHeight = Math.min(Math.max(preferredHeight, 400), work.height - 16, 900);
+
+  // Try right side first
+  let x = game.x + game.width + 8;
+  let y = game.y;
+
+  // If off right edge, dock to left of game
+  if (x + overlayWidth > work.x + work.width) {
+    x = game.x - overlayWidth - 8;
+  }
+
+  // If still off-screen (fullscreen), float inside game on the right
+  if (x < work.x) {
+    x = game.x + game.width - overlayWidth - 12;
+  }
+
+  // Clamp within monitor work area
+  x = Math.max(work.x, Math.min(x, work.x + work.width - overlayWidth));
+  y = Math.max(work.y, Math.min(y, work.y + work.height - overlayHeight));
+
+  return { x, y, width: overlayWidth, height: overlayHeight };
+}
 
 export class GameWindowTracker {
   private attached = false;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private lastGameInfo: GameWindowInfo | null = null;
+  private savedBounds: WindowBounds | null = null;
 
   constructor(private overlayWindow: BrowserWindow) {}
 
@@ -138,9 +184,19 @@ export class GameWindowTracker {
 
   attach(): void {
     if (this.attached) return;
+
+    // Save position so detach can restore it
+    const current = this.overlayWindow.getBounds();
+    this.savedBounds = {
+      x: current.x,
+      y: current.y,
+      width: current.width,
+      height: current.height,
+    };
+
     this.attached = true;
-    this.poll();
-    this.pollTimer = setInterval(() => this.poll(), ATTACH_POLL_MS);
+    void this.poll();
+    this.pollTimer = setInterval(() => void this.poll(), ATTACH_POLL_MS);
   }
 
   detach(): void {
@@ -150,6 +206,13 @@ export class GameWindowTracker {
       this.pollTimer = null;
     }
     this.lastGameInfo = null;
+
+    if (this.savedBounds && !this.overlayWindow.isDestroyed()) {
+      this.overlayWindow.setBounds(this.savedBounds);
+      this.overlayWindow.setAlwaysOnTop(true);
+      this.overlayWindow.show();
+      this.savedBounds = null;
+    }
   }
 
   private async poll(): Promise<void> {
@@ -160,20 +223,13 @@ export class GameWindowTracker {
 
     if (!info.found || !info.bounds) return;
 
-    const { x, y, width, height } = info.bounds;
-    const overlayHeight = Math.min(Math.max(height, 400), 900);
-    const overlayX = x + width + 4;
-    const overlayY = y;
+    const bounds = computeOverlayBounds(info.bounds, OVERLAY_WIDTH, info.bounds.height);
 
-    // Keep overlay on screen
-    const clampedX = Math.max(0, overlayX);
-    const clampedY = Math.max(0, overlayY);
-
-    this.overlayWindow.setBounds({
-      x: clampedX,
-      y: clampedY,
-      width: OVERLAY_WIDTH,
-      height: overlayHeight,
-    });
+    this.overlayWindow.setBounds(bounds);
+    this.overlayWindow.setAlwaysOnTop(true, 'screen-saver');
+    if (!this.overlayWindow.isVisible()) {
+      this.overlayWindow.show();
+    }
+    this.overlayWindow.moveTop();
   }
 }
