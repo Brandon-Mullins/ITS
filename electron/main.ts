@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { GameWindowTracker, findGameWindow } from './game-window';
-import { scanGameScreen, disposeScreenReader, extractStepKeywords } from './screen-reader';
+import { scanGameScreen, disposeScreenReader, extractStepKeywords, resetBankScanCache } from './screen-reader';
 import { fetchPlayerQuestsFromApi } from './player-api';
 import type { ScreenReaderConfig } from './screen-reader';
 
@@ -13,7 +13,7 @@ let gameTracker: GameWindowTracker | null = null;
 let screenReaderTimer: ReturnType<typeof setInterval> | null = null;
 let screenReaderConfig: ScreenReaderConfig | null = null;
 
-const SCREEN_READER_INTERVAL_MS = 3000;
+const SCREEN_READER_INTERVAL_MS = 2000;
 
 function getDataDir(): string {
   return path.join(app.getPath('userData'), 'quest-data');
@@ -28,10 +28,11 @@ function ensureDataDir(): void {
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 380,
-    height: 620,
-    minWidth: 320,
-    minHeight: 400,
+    width: 300,
+    height: 340,
+    minWidth: 280,
+    minHeight: 280,
+    maxHeight: 480,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
@@ -73,6 +74,7 @@ function stopScreenReader(): void {
 
 function startScreenReader(config: ScreenReaderConfig): void {
   stopScreenReader();
+  resetBankScanCache();
   screenReaderConfig = {
     ...config,
     stepKeywords: config.stepKeywords.length > 0

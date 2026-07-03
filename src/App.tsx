@@ -83,6 +83,8 @@ export default function App() {
           currentStepIndex: 0,
           completedSteps: [],
           collectedItems: [],
+          bankItems: [],
+          needGeItems: [],
           lastUpdated: new Date().toISOString(),
         },
       );
@@ -200,8 +202,6 @@ export default function App() {
             guide={guide}
             progress={progress}
             loading={guideLoading}
-            smartDetect={settings.smartDetect}
-            onToggleSmartDetect={(enabled) => handleSettingsChange({ smartDetect: enabled })}
             onBack={() => {
               setView('search');
               setGuide(null);

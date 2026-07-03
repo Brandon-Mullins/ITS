@@ -12,22 +12,24 @@ export interface ScreenReaderConfig {
 export interface ScreenReaderResult {
   timestamp: string;
   detectedItems: string[];
-  bankVisibleItems: string[];
+  bankItems: string[];
+  needGeItems: string[];
   suggestStepComplete: boolean;
   ocrSnippet: string;
   bankOpen: boolean;
+  bankScanned: boolean;
 }
 
 let worker: Worker | null = null;
 let workerInit: Promise<Worker> | null = null;
+let lastBankScanItems = new Set<string>();
+let bankEverScanned = false;
 
 async function getWorker(): Promise<Worker> {
   if (worker) return worker;
   if (!workerInit) {
     workerInit = (async () => {
-      const w = await createWorker('eng', 1, {
-        logger: () => {},
-      });
+      const w = await createWorker('eng', 1, { logger: () => {} });
       worker = w;
       return w;
     })();
@@ -43,7 +45,6 @@ function parseItemSearchTerms(itemLabel: string): string[] {
   const base = itemLabel.replace(/\([^)]*\)/g, '').trim();
   const terms = new Set<string>();
   if (base.length >= 3) terms.add(normalize(base));
-  // Also add individual significant words
   for (const word of base.split(/\s+/)) {
     const w = normalize(word);
     if (w.length >= 4) terms.add(w);
@@ -78,6 +79,7 @@ const WITHDRAW_PHRASES = [
   'you put aside',
   'you add',
   'you grab',
+  'you take out',
 ];
 
 const STEP_COMPLETE_PHRASES = [
@@ -87,10 +89,14 @@ const STEP_COMPLETE_PHRASES = [
   'congratulations',
   'you finish',
   'you complete',
-  'step complete',
 ];
 
-async function captureRegion(bounds: GameWindowInfo['bounds'], region: 'full' | 'chat'): Promise<Buffer | null> {
+type CaptureRegion = 'full' | 'chat' | 'bank' | 'inventory';
+
+async function captureRegion(
+  bounds: GameWindowInfo['bounds'],
+  region: CaptureRegion,
+): Promise<Buffer | null> {
   if (!bounds) return null;
 
   try {
@@ -102,18 +108,42 @@ async function captureRegion(bounds: GameWindowInfo['bounds'], region: 'full' | 
       height: bounds.height,
     };
 
-    if (region === 'chat') {
-      crop = {
-        left: crop.left,
-        top: crop.top + Math.floor(bounds.height * 0.72),
-        width: crop.width,
-        height: Math.floor(bounds.height * 0.28),
-      };
+    switch (region) {
+      case 'chat':
+        crop = {
+          left: crop.left,
+          top: crop.top + Math.floor(bounds.height * 0.72),
+          width: crop.width,
+          height: Math.floor(bounds.height * 0.26),
+        };
+        break;
+      case 'bank':
+        // RS3 bank interface — center panel
+        crop = {
+          left: crop.left + Math.floor(bounds.width * 0.18),
+          top: crop.top + Math.floor(bounds.height * 0.12),
+          width: Math.floor(bounds.width * 0.64),
+          height: Math.floor(bounds.height * 0.62),
+        };
+        break;
+      case 'inventory':
+        // Bottom-right inventory + backpack
+        crop = {
+          left: crop.left + Math.floor(bounds.width * 0.58),
+          top: crop.top + Math.floor(bounds.height * 0.58),
+          width: Math.floor(bounds.width * 0.40),
+          height: Math.floor(bounds.height * 0.38),
+        };
+        break;
+      default:
+        break;
     }
 
+    const maxWidth = region === 'bank' ? 900 : region === 'inventory' ? 500 : 800;
     return sharp(fullScreen)
       .extract(crop)
-      .resize({ width: Math.min(crop.width, 800) })
+      .resize({ width: Math.min(crop.width, maxWidth) })
+      .sharpen()
       .png()
       .toBuffer();
   } catch {
@@ -127,6 +157,23 @@ async function ocrBuffer(buffer: Buffer): Promise<string> {
   return data.text;
 }
 
+function matchItemsInText(
+  text: string,
+  itemMap: Map<string, string[]>,
+): string[] {
+  const norm = normalize(text);
+  const found: string[] = [];
+  for (const [itemLabel, terms] of itemMap) {
+    for (const term of terms) {
+      if (term.length >= 3 && norm.includes(term)) {
+        found.push(itemLabel);
+        break;
+      }
+    }
+  }
+  return found;
+}
+
 export async function scanGameScreen(
   gameInfo: GameWindowInfo,
   config: ScreenReaderConfig,
@@ -134,70 +181,111 @@ export async function scanGameScreen(
   if (!gameInfo.found || !gameInfo.bounds) return null;
 
   const itemMap = buildItemSearchMap(config.items);
-  const detectedItems = new Set<string>();
-  const bankVisibleItems = new Set<string>();
+  const inventoryItems = new Set<string>();
+  const bankItems = new Set<string>();
 
-  const fullBuffer = await captureRegion(gameInfo.bounds, 'full');
-  const chatBuffer = await captureRegion(gameInfo.bounds, 'chat');
+  const [fullBuffer, chatBuffer] = await Promise.all([
+    captureRegion(gameInfo.bounds, 'full'),
+    captureRegion(gameInfo.bounds, 'chat'),
+  ]);
 
   if (!fullBuffer) return null;
 
-  const [fullText, chatText] = await Promise.all([
-    ocrBuffer(fullBuffer),
-    chatBuffer ? ocrBuffer(chatBuffer) : Promise.resolve(''),
-  ]);
-
+  const fullText = await ocrBuffer(fullBuffer);
+  const chatText = chatBuffer ? await ocrBuffer(chatBuffer) : '';
   const combined = normalize(fullText + ' ' + chatText);
   const chatNorm = normalize(chatText);
-  const bankOpen = combined.includes('bank') || combined.includes('withdraw') || combined.includes('deposit');
 
+  const bankOpen =
+    combined.includes('bank') ||
+    combined.includes('withdraw') ||
+    combined.includes('deposit') ||
+    combined.includes('bank of');
+
+  let bankScanned = false;
+
+  if (bankOpen) {
+    const bankBuffer = await captureRegion(gameInfo.bounds, 'bank');
+    if (bankBuffer) {
+      const bankText = await ocrBuffer(bankBuffer);
+      bankEverScanned = true;
+      for (const item of matchItemsInText(bankText, itemMap)) {
+        bankItems.add(item);
+        lastBankScanItems.add(item);
+      }
+      bankScanned = true;
+    }
+  }
+
+  // Inventory region scan
+  const invBuffer = await captureRegion(gameInfo.bounds, 'inventory');
+  if (invBuffer) {
+    const invText = await ocrBuffer(invBuffer);
+    for (const item of matchItemsInText(invText, itemMap)) {
+      inventoryItems.add(item);
+    }
+  }
+
+  // Chat withdraw detection (most reliable for bank → inventory)
   for (const [itemLabel, terms] of itemMap) {
     for (const term of terms) {
-      if (term.length < 3) continue;
-
-      const inScreen = combined.includes(term);
-      if (!inScreen) continue;
-
-      if (bankOpen) {
-        bankVisibleItems.add(itemLabel);
-      }
-
       const withdrawn = WITHDRAW_PHRASES.some(
         (p) => chatNorm.includes(p) && chatNorm.includes(term),
       );
-      const inChat = chatNorm.includes(term);
-      const hasAction = WITHDRAW_PHRASES.some((p) => chatNorm.includes(p));
-
-      if (withdrawn || (inChat && hasAction) || (!bankOpen && inScreen && term.length >= 5)) {
-        detectedItems.add(itemLabel);
+      if (withdrawn) {
+        inventoryItems.add(itemLabel);
       }
     }
   }
 
-  const stepKeywords = config.stepKeywords.length > 0
-    ? config.stepKeywords
-    : extractStepKeywords(config.currentStepText);
+  // Items confirmed in inventory
+  const detectedItems = Array.from(inventoryItems);
+
+  // GE needed: not in inventory, bank was scanned, not found in bank (current or last scan)
+  const needGeItems: string[] = [];
+  const allBankKnown = new Set([...bankItems, ...lastBankScanItems]);
+  if (bankEverScanned) {
+    for (const item of config.items) {
+      if (inventoryItems.has(item)) continue;
+      if (allBankKnown.has(item)) continue;
+      needGeItems.push(item);
+    }
+  }
+
+  const stepKeywords =
+    config.stepKeywords.length > 0
+      ? config.stepKeywords
+      : extractStepKeywords(config.currentStepText);
 
   const keywordHits = stepKeywords.filter((kw) => chatNorm.includes(kw)).length;
   const hasCompletePhrase = STEP_COMPLETE_PHRASES.some((p) => chatNorm.includes(p));
-  const hasAction = WITHDRAW_PHRASES.some((p) => chatNorm.includes(p)) || chatNorm.includes('you talk') || chatNorm.includes('you speak');
+  const hasAction =
+    WITHDRAW_PHRASES.some((p) => chatNorm.includes(p)) ||
+    chatNorm.includes('you talk') ||
+    chatNorm.includes('you speak');
 
   const suggestStepComplete =
-    hasCompletePhrase ||
-    (keywordHits >= 2 && hasAction) ||
-    (keywordHits >= 1 && hasCompletePhrase);
+    hasCompletePhrase || (keywordHits >= 2 && hasAction) || (keywordHits >= 1 && hasCompletePhrase);
 
   return {
     timestamp: new Date().toISOString(),
-    detectedItems: Array.from(detectedItems),
-    bankVisibleItems: Array.from(bankVisibleItems),
+    detectedItems,
+    bankItems: Array.from(bankItems),
+    needGeItems,
     suggestStepComplete,
-    ocrSnippet: chatText.slice(0, 120).trim(),
+    ocrSnippet: chatText.slice(0, 80).trim(),
     bankOpen,
+    bankScanned,
   };
 }
 
+export function resetBankScanCache(): void {
+  lastBankScanItems = new Set();
+  bankEverScanned = false;
+}
+
 export async function disposeScreenReader(): Promise<void> {
+  lastBankScanItems = new Set();
   if (worker) {
     await worker.terminate();
     worker = null;

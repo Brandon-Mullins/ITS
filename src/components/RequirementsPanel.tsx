@@ -1,136 +1,87 @@
 import { useState } from 'react';
 import type { QuestMetadata } from '../types/quest';
+import { extractItemName, itemGeSearchUrl } from '../utils/items';
+import { openWikiUrl } from '../services/storage';
 
 interface RequirementsPanelProps {
   metadata: QuestMetadata;
   collectedItems: string[];
-  bankVisibleItems?: string[];
-  smartDetect: boolean;
-  onToggleItem: (item: string) => void;
+  bankItems: string[];
+  needGeItems: string[];
+  scanning: boolean;
+  bankOpen: boolean;
 }
 
-function itemStatus(
+type ItemState = 'inventory' | 'bank' | 'ge' | 'pending';
+
+function getItemState(
   item: string,
   collected: string[],
-  bankVisible: string[],
-  smartDetect: boolean,
-): 'collected' | 'bank' | 'missing' {
-  if (collected.includes(item)) return 'collected';
-  if (smartDetect && bankVisible.includes(item)) return 'bank';
-  return 'missing';
+  bank: string[],
+  needGe: string[],
+): ItemState {
+  if (collected.includes(item)) return 'inventory';
+  if (bank.includes(item)) return 'bank';
+  if (needGe.includes(item)) return 'ge';
+  return 'pending';
 }
+
+const STATE_LABELS: Record<ItemState, string> = {
+  inventory: '✓ In inventory',
+  bank: '🏦 In bank',
+  ge: '🛒 Buy on GE',
+  pending: '… Scanning',
+};
 
 export default function RequirementsPanel({
   metadata,
   collectedItems,
-  bankVisibleItems = [],
-  smartDetect,
-  onToggleItem,
+  bankItems,
+  needGeItems,
+  scanning,
+  bankOpen,
 }: RequirementsPanelProps) {
   const [expanded, setExpanded] = useState(true);
 
-  const hasContent =
-    metadata.requirements.length > 0 ||
-    metadata.skillRequirements.length > 0 ||
-    metadata.items.length > 0 ||
-    metadata.recommended.length > 0 ||
-    metadata.kills.length > 0;
+  if (metadata.items.length === 0) return null;
 
-  if (!hasContent) return null;
-
-  const collectedCount = metadata.items.filter((i) => collectedItems.includes(i)).length;
+  const readyCount = metadata.items.filter((i) => collectedItems.includes(i)).length;
 
   return (
-    <div className="requirements-panel">
-      <button
-        type="button"
-        className="requirements-toggle"
-        onClick={() => setExpanded(!expanded)}
-      >
+    <div className="requirements-panel compact">
+      <button type="button" className="requirements-toggle" onClick={() => setExpanded(!expanded)}>
         <span>
-          Requirements & Items
-          {metadata.items.length > 0 && (
-            <span className="item-progress"> ({collectedCount}/{metadata.items.length} ready)</span>
-          )}
+          Items {readyCount}/{metadata.items.length}
+          {scanning && <span className="scan-dot"> ●</span>}
         </span>
         <span className="toggle-icon">{expanded ? '▼' : '▶'}</span>
       </button>
 
       {expanded && (
         <div className="requirements-content">
-          {metadata.skillRequirements.length > 0 && (
-            <section>
-              <h4>Skill requirements</h4>
-              <ul>
-                {metadata.skillRequirements.map((req) => (
-                  <li key={req.skill}>
-                    {req.skill}: level {req.level}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {metadata.requirements.length > 0 && (
-            <section>
-              <h4>Requirements</h4>
-              <ul>
-                {metadata.requirements.map((req, i) => (
-                  <li key={i}>{req}</li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {metadata.items.length > 0 && (
-            <section>
-              <h4>Required items</h4>
-              {smartDetect && (
-                <p className="item-hint">Green = detected in inventory · Yellow = seen in bank</p>
-              )}
-              <ul className="item-checklist">
-                {metadata.items.map((item) => {
-                  const status = itemStatus(item, collectedItems, bankVisibleItems, smartDetect);
-                  return (
-                    <li key={item} className={`item-row item-${status}`}>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={collectedItems.includes(item)}
-                          onChange={() => onToggleItem(item)}
-                        />
-                        <span className="item-label">{item}</span>
-                        {status === 'collected' && <span className="item-badge collected">✓ Ready</span>}
-                        {status === 'bank' && <span className="item-badge bank">In bank</span>}
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          )}
-
-          {metadata.recommended.length > 0 && (
-            <section>
-              <h4>Recommended</h4>
-              <ul>
-                {metadata.recommended.map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {metadata.kills.length > 0 && (
-            <section>
-              <h4>Combat</h4>
-              <ul>
-                {metadata.kills.map((kill, i) => (
-                  <li key={i}>{kill}</li>
-                ))}
-              </ul>
-            </section>
-          )}
+          {bankOpen && <p className="item-hint">Bank open — scanning items…</p>}
+          <ul className="item-checklist">
+            {metadata.items.map((item) => {
+              const state = getItemState(item, collectedItems, bankItems, needGeItems);
+              return (
+                <li key={item} className={`item-row item-${state}`}>
+                  <span className="item-label">{extractItemName(item)}</span>
+                  {state === 'ge' ? (
+                    <button
+                      type="button"
+                      className="item-badge ge"
+                      onClick={() => openWikiUrl(itemGeSearchUrl(item))}
+                      title="View GE price on Wiki"
+                    >
+                      {STATE_LABELS.ge}
+                    </button>
+                  ) : (
+                    <span className={`item-badge ${state}`}>{STATE_LABELS[state]}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
     </div>

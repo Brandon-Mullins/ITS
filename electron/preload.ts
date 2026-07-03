@@ -9,10 +9,12 @@ interface ScreenReaderConfig {
 interface ScreenReaderResult {
   timestamp: string;
   detectedItems: string[];
-  bankVisibleItems: string[];
+  bankItems: string[];
+  needGeItems: string[];
   suggestStepComplete: boolean;
   ocrSnippet: string;
   bankOpen: boolean;
+  bankScanned: boolean;
 }
 
 const api = {

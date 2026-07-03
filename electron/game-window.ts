@@ -127,14 +127,11 @@ export async function findGameWindow(): Promise<GameWindowInfo> {
   }
 }
 
-const OVERLAY_WIDTH = 380;
+const OVERLAY_WIDTH = 300;
+const OVERLAY_HEIGHT = 340;
 const ATTACH_POLL_MS = 500;
 
-function computeOverlayBounds(
-  game: WindowBounds,
-  overlayWidth: number,
-  preferredHeight: number,
-): WindowBounds {
+function computeOverlayBounds(game: WindowBounds): WindowBounds {
   const display = screen.getDisplayMatching({
     x: game.x + Math.floor(game.width / 2),
     y: game.y + Math.floor(game.height / 2),
@@ -143,27 +140,12 @@ function computeOverlayBounds(
   });
 
   const work = display.workArea;
-  const overlayHeight = Math.min(Math.max(preferredHeight, 400), work.height - 16, 900);
 
-  // Try right side first
-  let x = game.x + game.width + 8;
-  let y = game.y;
+  // Compact overlay — top-left of game window
+  const x = Math.max(work.x, Math.min(game.x + 8, work.x + work.width - OVERLAY_WIDTH));
+  const y = Math.max(work.y, Math.min(game.y + 8, work.y + work.height - OVERLAY_HEIGHT));
 
-  // If off right edge, dock to left of game
-  if (x + overlayWidth > work.x + work.width) {
-    x = game.x - overlayWidth - 8;
-  }
-
-  // If still off-screen (fullscreen), float inside game on the right
-  if (x < work.x) {
-    x = game.x + game.width - overlayWidth - 12;
-  }
-
-  // Clamp within monitor work area
-  x = Math.max(work.x, Math.min(x, work.x + work.width - overlayWidth));
-  y = Math.max(work.y, Math.min(y, work.y + work.height - overlayHeight));
-
-  return { x, y, width: overlayWidth, height: overlayHeight };
+  return { x, y, width: OVERLAY_WIDTH, height: OVERLAY_HEIGHT };
 }
 
 export class GameWindowTracker {
@@ -223,7 +205,7 @@ export class GameWindowTracker {
 
     if (!info.found || !info.bounds) return;
 
-    const bounds = computeOverlayBounds(info.bounds, OVERLAY_WIDTH, info.bounds.height);
+    const bounds = computeOverlayBounds(info.bounds);
 
     this.overlayWindow.setBounds(bounds);
     this.overlayWindow.setAlwaysOnTop(true, 'screen-saver');

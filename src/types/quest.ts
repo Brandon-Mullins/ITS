@@ -44,6 +44,8 @@ export interface QuestProgress {
   currentStepIndex: number;
   completedSteps: string[];
   collectedItems: string[];
+  bankItems: string[];
+  needGeItems: string[];
   lastUpdated: string;
 }
 
@@ -66,10 +68,12 @@ export interface GameWindowInfo {
 export interface ScreenReaderResult {
   timestamp: string;
   detectedItems: string[];
-  bankVisibleItems: string[];
+  bankItems: string[];
+  needGeItems: string[];
   suggestStepComplete: boolean;
   ocrSnippet: string;
   bankOpen: boolean;
+  bankScanned: boolean;
 }
 
 export interface ScreenReaderConfig {

@@ -9,8 +9,6 @@ interface QuestGuideViewProps {
   guide: QuestGuide | null;
   progress: QuestProgress | null;
   loading: boolean;
-  smartDetect: boolean;
-  onToggleSmartDetect: (enabled: boolean) => void;
   onBack: () => void;
   onRefresh: () => void;
   onProgressChange: (updates: Partial<QuestProgress>) => void;
@@ -20,121 +18,55 @@ export default function QuestGuideView({
   guide,
   progress,
   loading,
-  smartDetect,
-  onToggleSmartDetect,
   onBack,
   onRefresh,
   onProgressChange,
 }: QuestGuideViewProps) {
   const [lastScan, setLastScan] = useState<ScreenReaderResult | null>(null);
-  const [bankVisibleItems, setBankVisibleItems] = useState<string[]>([]);
 
   useSmartDetect({
-    enabled: smartDetect,
+    enabled: true,
     guide,
     progress,
     onProgressChange,
-    onScanResult: (result) => {
-      setLastScan(result);
-      setBankVisibleItems(result.bankVisibleItems);
-    },
+    onScanResult: setLastScan,
   });
 
   if (loading || !guide || !progress) {
     return (
       <div className="guide-loading">
         <div className="spinner" />
-        <p>Loading guide from Wiki…</p>
+        <p>Loading guide…</p>
       </div>
     );
   }
 
   const { metadata, steps } = guide;
-  const collectedItems = progress.collectedItems ?? [];
   const currentIndex = Math.min(progress.currentStepIndex, Math.max(0, steps.length - 1));
   const currentStep = steps[currentIndex];
 
-  const toggleStepComplete = (stepId: string) => {
-    const completed = new Set(progress.completedSteps);
-    if (completed.has(stepId)) {
-      completed.delete(stepId);
-    } else {
-      completed.add(stepId);
-    }
-    onProgressChange({ completedSteps: Array.from(completed) });
-  };
-
-  const toggleItem = (item: string) => {
-    const collected = new Set(collectedItems);
-    if (collected.has(item)) {
-      collected.delete(item);
-    } else {
-      collected.add(item);
-    }
-    onProgressChange({ collectedItems: Array.from(collected) });
-  };
-
   const goToStep = (index: number) => {
-    const clamped = Math.max(0, Math.min(index, steps.length - 1));
-    onProgressChange({ currentStepIndex: clamped });
+    onProgressChange({ currentStepIndex: Math.max(0, Math.min(index, steps.length - 1)) });
   };
 
   return (
-    <div className="quest-guide">
-      <div className="guide-header">
-        <button type="button" className="btn-ghost" onClick={onBack}>
-          ← Back
-        </button>
-        <div className="guide-title-block">
-          <h2>{metadata.name}</h2>
-          <div className="guide-badges">
-            {metadata.isMiniquest && <span className="badge badge-mini">Miniquest</span>}
-            {metadata.members ? (
-              <span className="badge badge-p2p">Members</span>
-            ) : (
-              <span className="badge badge-f2p">F2P</span>
-            )}
-            <span className="badge badge-length">{metadata.length}</span>
-          </div>
-        </div>
-        <div className="guide-actions">
-          <button type="button" className="btn-ghost btn-sm" onClick={onRefresh} title="Refresh from Wiki">
-            ↻
-          </button>
-          <button
-            type="button"
-            className="btn-ghost btn-sm"
-            onClick={() => openWikiUrl(metadata.wikiUrl)}
-            title="Open on RuneScape Wiki"
-          >
-            Wiki ↗
-          </button>
-        </div>
+    <div className="quest-guide compact">
+      <div className="guide-header compact">
+        <button type="button" className="btn-ghost btn-sm" onClick={onBack}>←</button>
+        <h2 className="guide-title-compact">{metadata.name}</h2>
+        <button type="button" className="btn-ghost btn-sm" onClick={onRefresh}>↻</button>
       </div>
 
-      <div className="smart-detect-bar">
-        <label className="smart-detect-toggle">
-          <input
-            type="checkbox"
-            checked={smartDetect}
-            onChange={(e) => onToggleSmartDetect(e.target.checked)}
-          />
-          <span>Smart detect (screen read)</span>
-        </label>
-        {smartDetect && (
-          <span className="scan-status">
-            {lastScan?.bankOpen ? '🏦 Bank open' : '👁 Scanning…'}
-          </span>
-        )}
-      </div>
-
-      <RequirementsPanel
-        metadata={metadata}
-        collectedItems={collectedItems}
-        bankVisibleItems={bankVisibleItems}
-        smartDetect={smartDetect}
-        onToggleItem={toggleItem}
-      />
+      {metadata.items.length > 0 && (
+        <RequirementsPanel
+          metadata={metadata}
+          collectedItems={progress.collectedItems ?? []}
+          bankItems={progress.bankItems ?? []}
+          needGeItems={progress.needGeItems ?? []}
+          scanning={!lastScan}
+          bankOpen={lastScan?.bankOpen ?? false}
+        />
+      )}
 
       {steps.length > 0 ? (
         <>
@@ -143,71 +75,21 @@ export default function QuestGuideView({
             stepNumber={currentIndex + 1}
             totalSteps={steps.length}
             isCompleted={progress.completedSteps.includes(currentStep.id)}
-            onToggleComplete={() => toggleStepComplete(currentStep.id)}
           />
 
-          <div className="step-nav">
-            <button
-              type="button"
-              className="btn-nav"
-              disabled={currentIndex === 0}
-              onClick={() => goToStep(currentIndex - 1)}
-            >
-              ← Previous
-            </button>
-            <span className="step-counter">
-              {currentIndex + 1} / {steps.length}
+          <div className="step-nav compact">
+            <button type="button" className="btn-nav btn-sm" disabled={currentIndex === 0} onClick={() => goToStep(currentIndex - 1)}>←</button>
+            <span className="scan-live">
+              {lastScan?.bankOpen ? '🏦 Bank' : '👁 Auto'}
             </span>
-            <button
-              type="button"
-              className="btn-nav btn-primary"
-              disabled={currentIndex >= steps.length - 1}
-              onClick={() => goToStep(currentIndex + 1)}
-            >
-              Next →
-            </button>
+            <button type="button" className="btn-nav btn-sm" disabled={currentIndex >= steps.length - 1} onClick={() => goToStep(currentIndex + 1)}>→</button>
           </div>
-
-          <details className="all-steps">
-            <summary>All steps ({progress.completedSteps.length}/{steps.length} done)</summary>
-            <ol className="step-checklist">
-              {steps.map((step, i) => (
-                <li key={step.id} className={progress.completedSteps.includes(step.id) ? 'done' : ''}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={progress.completedSteps.includes(step.id)}
-                      onChange={() => toggleStepComplete(step.id)}
-                    />
-                    <button
-                      type="button"
-                      className={`step-link ${i === currentIndex ? 'current' : ''}`}
-                      onClick={() => goToStep(i)}
-                    >
-                      <span className="step-section">{step.sectionTitle}</span>
-                      <span className="step-preview">{step.text.slice(0, 80)}{step.text.length > 80 ? '…' : ''}</span>
-                    </button>
-                  </label>
-                </li>
-              ))}
-            </ol>
-          </details>
         </>
       ) : (
         <div className="no-steps">
-          <p>No walkthrough steps found. Check the Wiki for the full guide.</p>
-          <button type="button" className="btn-primary" onClick={() => openWikiUrl(metadata.wikiUrl)}>
-            Open Wiki Guide
-          </button>
+          <button type="button" className="btn-primary btn-sm" onClick={() => openWikiUrl(metadata.wikiUrl)}>Wiki Guide</button>
         </div>
       )}
-
-      <p className="wiki-source">
-        Source: <button type="button" className="link-btn" onClick={() => openWikiUrl(metadata.wikiUrl)}>RuneScape Wiki</button>
-        {guide.fetchedAt && (
-          <span className="fetched-at"> · Updated {new Date(guide.fetchedAt).toLocaleDateString()}</span>
-        )}
-      </p>
     </div>
   );
 }
