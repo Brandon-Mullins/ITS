@@ -11,6 +11,7 @@ import {
   saveQuestIndex,
 } from './services/storage';
 import { fetchQuestIndex } from './services/wiki';
+import { useGameAttach } from './hooks/useGameAttach';
 import TitleBar from './components/TitleBar';
 import QuestSearch from './components/QuestSearch';
 import QuestGuideView from './components/QuestGuideView';
@@ -21,11 +22,26 @@ export default function App() {
   const [selectedPageName, setSelectedPageName] = useState<string | null>(null);
   const [guide, setGuide] = useState<QuestGuide | null>(null);
   const [progress, setProgress] = useState<QuestProgress | null>(null);
-  const [settings, setSettings] = useState<AppSettings>({ alwaysOnTop: true, opacity: 0.95 });
+  const [settings, setSettings] = useState<AppSettings>({
+    alwaysOnTop: true,
+    opacity: 0.95,
+    attachToGame: false,
+    smartDetect: false,
+  });
   const [loading, setLoading] = useState(true);
   const [guideLoading, setGuideLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'search' | 'guide'>('search');
+
+  const handleSettingsChange = useCallback(async (updates: Partial<AppSettings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...updates };
+      saveSettings(next);
+      return next;
+    });
+  }, []);
+
+  const { gameInfo, attachError, toggleAttach } = useGameAttach(settings, handleSettingsChange);
 
   useEffect(() => {
     async function init() {
@@ -33,6 +49,10 @@ export default function App() {
         const [index, savedSettings] = await Promise.all([loadQuestIndex(), loadSettings()]);
         setQuests(index);
         setSettings(savedSettings);
+
+        if (savedSettings.attachToGame && window.electronAPI?.gameAttach) {
+          await window.electronAPI.gameAttach();
+        }
 
         if (savedSettings.lastQuest) {
           setSelectedPageName(savedSettings.lastQuest);
@@ -61,18 +81,19 @@ export default function App() {
           questPageName: pageName,
           currentStepIndex: 0,
           completedSteps: [],
+          collectedItems: [],
           lastUpdated: new Date().toISOString(),
         },
       );
       setSelectedPageName(pageName);
       setView('guide');
-      await saveSettings({ ...settings, lastQuest: pageName });
+      handleSettingsChange({ lastQuest: pageName });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load quest guide');
     } finally {
       setGuideLoading(false);
     }
-  }, [settings]);
+  }, [handleSettingsChange]);
 
   useEffect(() => {
     if (selectedPageName && view === 'guide' && !guide && !guideLoading) {
@@ -121,21 +142,27 @@ export default function App() {
     [progress, selectedPageName],
   );
 
-  const handleSettingsChange = useCallback(async (updates: Partial<AppSettings>) => {
-    const next = { ...settings, ...updates };
-    setSettings(next);
-    await saveSettings(next);
-  }, [settings]);
-
   const sortedQuests = useMemo(
     () => [...quests].sort((a, b) => a.name.localeCompare(b.name)),
     [quests],
   );
 
+  const footerStatus = attachError
+    ? attachError
+    : settings.attachToGame && gameInfo?.title
+      ? `Locked to: ${gameInfo.title}`
+      : settings.smartDetect
+        ? 'Smart detect on · screen read only'
+        : 'No automation · Wiki-powered';
+
   if (loading) {
     return (
       <div className="overlay">
-        <TitleBar settings={settings} onSettingsChange={handleSettingsChange} />
+        <TitleBar
+          settings={settings}
+          onSettingsChange={handleSettingsChange}
+          onToggleAttach={toggleAttach}
+        />
         <div className="content loading-state">
           <div className="spinner" />
           <p>Loading quest database…</p>
@@ -146,7 +173,11 @@ export default function App() {
 
   return (
     <div className="overlay">
-      <TitleBar settings={settings} onSettingsChange={handleSettingsChange} />
+        <TitleBar
+          settings={settings}
+          onSettingsChange={handleSettingsChange}
+          onToggleAttach={toggleAttach}
+        />
       <div className="content">
         {error && (
           <div className="error-banner">
@@ -166,6 +197,8 @@ export default function App() {
             guide={guide}
             progress={progress}
             loading={guideLoading}
+            smartDetect={settings.smartDetect}
+            onToggleSmartDetect={(enabled) => handleSettingsChange({ smartDetect: enabled })}
             onBack={() => {
               setView('search');
               setGuide(null);
@@ -176,8 +209,10 @@ export default function App() {
         )}
       </div>
       <footer className="footer">
-        <span className="footer-badge">Read-only overlay</span>
-        <span className="footer-note">No automation · Wiki-powered</span>
+        <span className={`footer-badge ${settings.attachToGame ? 'attached' : ''}`}>
+          {settings.attachToGame ? '🔒 Attached' : 'Read-only overlay'}
+        </span>
+        <span className={`footer-note ${attachError ? 'status-error' : ''}`}>{footerStatus}</span>
       </footer>
     </div>
   );

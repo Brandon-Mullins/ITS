@@ -6,14 +6,14 @@ import path from 'path';
 export default defineConfig({
   plugins: [
     react(),
-    electron({
+      electron({
       main: {
         entry: 'electron/main.ts',
         vite: {
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron'],
+              external: ['electron', 'screenshot-desktop', 'sharp', 'tesseract.js'],
             },
           },
         },

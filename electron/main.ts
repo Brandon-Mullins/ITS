@@ -1,10 +1,18 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { GameWindowTracker, findGameWindow } from './game-window';
+import { scanGameScreen, disposeScreenReader, extractStepKeywords } from './screen-reader';
+import type { ScreenReaderConfig } from './screen-reader';
 
 const isDev = !app.isPackaged;
 
 let mainWindow: BrowserWindow | null = null;
+let gameTracker: GameWindowTracker | null = null;
+let screenReaderTimer: ReturnType<typeof setInterval> | null = null;
+let screenReaderConfig: ScreenReaderConfig | null = null;
+
+const SCREEN_READER_INTERVAL_MS = 3000;
 
 function getDataDir(): string {
   return path.join(app.getPath('userData'), 'quest-data');
@@ -40,14 +48,54 @@ function createWindow(): void {
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
   mainWindow.on('closed', () => {
+    stopScreenReader();
+    gameTracker?.detach();
     mainWindow = null;
+    gameTracker = null;
   });
+
+  gameTracker = new GameWindowTracker(mainWindow);
+}
+
+function stopScreenReader(): void {
+  if (screenReaderTimer) {
+    clearInterval(screenReaderTimer);
+    screenReaderTimer = null;
+  }
+  screenReaderConfig = null;
+}
+
+function startScreenReader(config: ScreenReaderConfig): void {
+  stopScreenReader();
+  screenReaderConfig = {
+    ...config,
+    stepKeywords: config.stepKeywords.length > 0
+      ? config.stepKeywords
+      : extractStepKeywords(config.currentStepText),
+  };
+
+  const runScan = async () => {
+    if (!mainWindow || mainWindow.isDestroyed() || !screenReaderConfig) return;
+    const gameInfo = gameTracker?.getLastGameInfo() ?? await findGameWindow();
+    if (!gameInfo.found) return;
+
+    try {
+      const result = await scanGameScreen(gameInfo, screenReaderConfig);
+      if (result && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('screen-reader:result', result);
+      }
+    } catch {
+      // OCR failures are non-fatal
+    }
+  };
+
+  runScan();
+  screenReaderTimer = setInterval(runScan, SCREEN_READER_INTERVAL_MS);
 }
 
 app.whenReady().then(() => {
@@ -62,6 +110,8 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  stopScreenReader();
+  disposeScreenReader();
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -116,4 +166,38 @@ ipcMain.handle('storage:read-bundled', (_event, filename: string) => {
   } catch {
     return null;
   }
+});
+
+// Game window attach
+ipcMain.handle('game:find', async () => {
+  return findGameWindow();
+});
+
+ipcMain.handle('game:attach', async () => {
+  if (!gameTracker) return { attached: false };
+  gameTracker.attach();
+  return { attached: true, game: gameTracker.getLastGameInfo() };
+});
+
+ipcMain.handle('game:detach', async () => {
+  gameTracker?.detach();
+  return { attached: false };
+});
+
+ipcMain.handle('game:status', async () => {
+  return {
+    attached: gameTracker?.isAttached() ?? false,
+    game: gameTracker?.getLastGameInfo() ?? null,
+  };
+});
+
+// Screen reader
+ipcMain.handle('screen-reader:start', async (_event, config: ScreenReaderConfig) => {
+  startScreenReader(config);
+  return true;
+});
+
+ipcMain.handle('screen-reader:stop', async () => {
+  stopScreenReader();
+  return true;
 });

@@ -1,5 +1,20 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+interface ScreenReaderConfig {
+  items: string[];
+  currentStepText: string;
+  stepKeywords: string[];
+}
+
+interface ScreenReaderResult {
+  timestamp: string;
+  detectedItems: string[];
+  bankVisibleItems: string[];
+  suggestStepComplete: boolean;
+  ocrSnippet: string;
+  bankOpen: boolean;
+}
+
 const api = {
   minimize: () => ipcRenderer.invoke('window:minimize'),
   close: () => ipcRenderer.invoke('window:close'),
@@ -11,6 +26,19 @@ const api = {
     ipcRenderer.invoke('storage:write', filename, data),
   storageReadBundled: <T>(filename: string) =>
     ipcRenderer.invoke('storage:read-bundled', filename),
+  gameFind: () => ipcRenderer.invoke('game:find'),
+  gameAttach: () => ipcRenderer.invoke('game:attach'),
+  gameDetach: () => ipcRenderer.invoke('game:detach'),
+  gameStatus: () => ipcRenderer.invoke('game:status'),
+  screenReaderStart: (config: ScreenReaderConfig) =>
+    ipcRenderer.invoke('screen-reader:start', config),
+  screenReaderStop: () => ipcRenderer.invoke('screen-reader:stop'),
+  onScreenReaderResult: (callback: (result: ScreenReaderResult) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, result: ScreenReaderResult) =>
+      callback(result);
+    ipcRenderer.on('screen-reader:result', handler);
+    return () => ipcRenderer.removeListener('screen-reader:result', handler);
+  },
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

@@ -1,5 +1,7 @@
-import type { QuestGuide, QuestProgress } from '../types/quest';
+import { useState } from 'react';
+import type { QuestGuide, QuestProgress, ScreenReaderResult } from '../types/quest';
 import { openWikiUrl } from '../services/storage';
+import { useSmartDetect } from '../hooks/useSmartDetect';
 import RequirementsPanel from './RequirementsPanel';
 import StepPanel from './StepPanel';
 
@@ -7,6 +9,8 @@ interface QuestGuideViewProps {
   guide: QuestGuide | null;
   progress: QuestProgress | null;
   loading: boolean;
+  smartDetect: boolean;
+  onToggleSmartDetect: (enabled: boolean) => void;
   onBack: () => void;
   onRefresh: () => void;
   onProgressChange: (updates: Partial<QuestProgress>) => void;
@@ -16,10 +20,26 @@ export default function QuestGuideView({
   guide,
   progress,
   loading,
+  smartDetect,
+  onToggleSmartDetect,
   onBack,
   onRefresh,
   onProgressChange,
 }: QuestGuideViewProps) {
+  const [lastScan, setLastScan] = useState<ScreenReaderResult | null>(null);
+  const [bankVisibleItems, setBankVisibleItems] = useState<string[]>([]);
+
+  useSmartDetect({
+    enabled: smartDetect,
+    guide,
+    progress,
+    onProgressChange,
+    onScanResult: (result) => {
+      setLastScan(result);
+      setBankVisibleItems(result.bankVisibleItems);
+    },
+  });
+
   if (loading || !guide || !progress) {
     return (
       <div className="guide-loading">
@@ -30,6 +50,7 @@ export default function QuestGuideView({
   }
 
   const { metadata, steps } = guide;
+  const collectedItems = progress.collectedItems ?? [];
   const currentIndex = Math.min(progress.currentStepIndex, Math.max(0, steps.length - 1));
   const currentStep = steps[currentIndex];
 
@@ -41,6 +62,16 @@ export default function QuestGuideView({
       completed.add(stepId);
     }
     onProgressChange({ completedSteps: Array.from(completed) });
+  };
+
+  const toggleItem = (item: string) => {
+    const collected = new Set(collectedItems);
+    if (collected.has(item)) {
+      collected.delete(item);
+    } else {
+      collected.add(item);
+    }
+    onProgressChange({ collectedItems: Array.from(collected) });
   };
 
   const goToStep = (index: number) => {
@@ -81,7 +112,29 @@ export default function QuestGuideView({
         </div>
       </div>
 
-      <RequirementsPanel metadata={metadata} />
+      <div className="smart-detect-bar">
+        <label className="smart-detect-toggle">
+          <input
+            type="checkbox"
+            checked={smartDetect}
+            onChange={(e) => onToggleSmartDetect(e.target.checked)}
+          />
+          <span>Smart detect (screen read)</span>
+        </label>
+        {smartDetect && (
+          <span className="scan-status">
+            {lastScan?.bankOpen ? '🏦 Bank open' : '👁 Scanning…'}
+          </span>
+        )}
+      </div>
+
+      <RequirementsPanel
+        metadata={metadata}
+        collectedItems={collectedItems}
+        bankVisibleItems={bankVisibleItems}
+        smartDetect={smartDetect}
+        onToggleItem={toggleItem}
+      />
 
       {steps.length > 0 ? (
         <>

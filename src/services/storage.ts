@@ -84,7 +84,12 @@ export async function saveProgress(progress: QuestProgress): Promise<void> {
 }
 
 export async function loadSettings(): Promise<AppSettings> {
-  const defaults: AppSettings = { alwaysOnTop: true, opacity: 0.95 };
+  const defaults: AppSettings = {
+    alwaysOnTop: true,
+    opacity: 0.95,
+    attachToGame: false,
+    smartDetect: false,
+  };
 
   if (isElectron()) {
     const saved = await window.electronAPI.storageRead<AppSettings>(SETTINGS_FILE);

@@ -43,13 +43,38 @@ export interface QuestProgress {
   questPageName: string;
   currentStepIndex: number;
   completedSteps: string[];
+  collectedItems: string[];
   lastUpdated: string;
 }
 
 export interface AppSettings {
   alwaysOnTop: boolean;
   opacity: number;
+  attachToGame: boolean;
+  smartDetect: boolean;
   lastQuest?: string;
+}
+
+export interface GameWindowInfo {
+  found: boolean;
+  title: string;
+  bounds: { x: number; y: number; width: number; height: number } | null;
+  processId: number | null;
+}
+
+export interface ScreenReaderResult {
+  timestamp: string;
+  detectedItems: string[];
+  bankVisibleItems: string[];
+  suggestStepComplete: boolean;
+  ocrSnippet: string;
+  bankOpen: boolean;
+}
+
+export interface ScreenReaderConfig {
+  items: string[];
+  currentStepText: string;
+  stepKeywords: string[];
 }
 
 export interface ElectronAPI {
@@ -61,6 +86,13 @@ export interface ElectronAPI {
   storageRead: <T>(filename: string) => Promise<T | null>;
   storageWrite: (filename: string, data: unknown) => Promise<boolean>;
   storageReadBundled: <T>(filename: string) => Promise<T | null>;
+  gameFind: () => Promise<GameWindowInfo>;
+  gameAttach: () => Promise<{ attached: boolean; game?: GameWindowInfo }>;
+  gameDetach: () => Promise<{ attached: boolean }>;
+  gameStatus: () => Promise<{ attached: boolean; game: GameWindowInfo | null }>;
+  screenReaderStart: (config: ScreenReaderConfig) => Promise<boolean>;
+  screenReaderStop: () => Promise<boolean>;
+  onScreenReaderResult: (callback: (result: ScreenReaderResult) => void) => () => void;
 }
 
 declare global {

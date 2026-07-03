@@ -3,10 +3,31 @@ import type { QuestMetadata } from '../types/quest';
 
 interface RequirementsPanelProps {
   metadata: QuestMetadata;
+  collectedItems: string[];
+  bankVisibleItems?: string[];
+  smartDetect: boolean;
+  onToggleItem: (item: string) => void;
 }
 
-export default function RequirementsPanel({ metadata }: RequirementsPanelProps) {
-  const [expanded, setExpanded] = useState(false);
+function itemStatus(
+  item: string,
+  collected: string[],
+  bankVisible: string[],
+  smartDetect: boolean,
+): 'collected' | 'bank' | 'missing' {
+  if (collected.includes(item)) return 'collected';
+  if (smartDetect && bankVisible.includes(item)) return 'bank';
+  return 'missing';
+}
+
+export default function RequirementsPanel({
+  metadata,
+  collectedItems,
+  bankVisibleItems = [],
+  smartDetect,
+  onToggleItem,
+}: RequirementsPanelProps) {
+  const [expanded, setExpanded] = useState(true);
 
   const hasContent =
     metadata.requirements.length > 0 ||
@@ -17,6 +38,8 @@ export default function RequirementsPanel({ metadata }: RequirementsPanelProps) 
 
   if (!hasContent) return null;
 
+  const collectedCount = metadata.items.filter((i) => collectedItems.includes(i)).length;
+
   return (
     <div className="requirements-panel">
       <button
@@ -24,7 +47,12 @@ export default function RequirementsPanel({ metadata }: RequirementsPanelProps) 
         className="requirements-toggle"
         onClick={() => setExpanded(!expanded)}
       >
-        <span>Requirements & Items</span>
+        <span>
+          Requirements & Items
+          {metadata.items.length > 0 && (
+            <span className="item-progress"> ({collectedCount}/{metadata.items.length} ready)</span>
+          )}
+        </span>
         <span className="toggle-icon">{expanded ? '▼' : '▶'}</span>
       </button>
 
@@ -57,15 +85,27 @@ export default function RequirementsPanel({ metadata }: RequirementsPanelProps) 
           {metadata.items.length > 0 && (
             <section>
               <h4>Required items</h4>
+              {smartDetect && (
+                <p className="item-hint">Green = detected in inventory · Yellow = seen in bank</p>
+              )}
               <ul className="item-checklist">
-                {metadata.items.map((item, i) => (
-                  <li key={i}>
-                    <label>
-                      <input type="checkbox" />
-                      {item}
-                    </label>
-                  </li>
-                ))}
+                {metadata.items.map((item) => {
+                  const status = itemStatus(item, collectedItems, bankVisibleItems, smartDetect);
+                  return (
+                    <li key={item} className={`item-row item-${status}`}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={collectedItems.includes(item)}
+                          onChange={() => onToggleItem(item)}
+                        />
+                        <span className="item-label">{item}</span>
+                        {status === 'collected' && <span className="item-badge collected">✓ Ready</span>}
+                        {status === 'bank' && <span className="item-badge bank">In bank</span>}
+                      </label>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           )}
