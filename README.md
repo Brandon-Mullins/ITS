@@ -42,9 +42,20 @@ A **read-only desktop overlay** for RuneScape 3 that helps players complete ques
 
 ### Install
 
+**Windows — one click (easiest):**
+
+1. Download [setup-and-run.bat](https://raw.githubusercontent.com/Brandon-Mullins/ITS/cursor/rs3-quest-helper-mvp1-1b6e/setup-and-run.bat)
+2. Double-click it
+
+It will install everything to `%USERPROFILE%\ITS` and open the overlay.
+
+**Manual install:**
+
 ```bash
+git clone -b cursor/rs3-quest-helper-mvp1-1b6e https://github.com/Brandon-Mullins/ITS.git
+cd ITS
 npm install
-npm run seed    # fetch quest index from Wiki (bundled data included)
+npm run seed    # optional — bundled data included
 ```
 
 ### Development

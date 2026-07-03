@@ -9,7 +9,7 @@
     "dev": "vite",
     "build": "tsc && vite build && tsc -p tsconfig.electron.json",
     "preview": "vite preview",
-    "electron:dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:dev": "vite",
     "electron:build": "npm run build && electron-builder --win",
     "seed": "tsx scripts/seed-quests.ts",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit"
