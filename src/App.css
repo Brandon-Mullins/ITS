@@ -541,6 +541,57 @@
   font-size: 9px;
 }
 
+/* Travel hints */
+.travel-hints {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.travel-hint-block {
+  margin-bottom: 6px;
+}
+
+.travel-heading {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #6ab0ff;
+  margin-bottom: 4px;
+}
+
+.travel-methods {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.travel-methods li {
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  padding: 2px 0;
+}
+
+.travel-methods li.travel-best {
+  color: #8fd87a;
+}
+
+.travel-methods li.travel-best strong {
+  color: #8fd87a;
+}
+
+.travel-detail {
+  color: var(--text-muted);
+}
+
+.travel-p2p {
+  font-size: 8px;
+  padding: 0 3px;
+  margin-left: 3px;
+  vertical-align: middle;
+}
+
 /* Quest guide */
 .guide-header {
   display: flex;

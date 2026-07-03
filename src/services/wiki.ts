@@ -1,3 +1,5 @@
+import { extractWikiLinks, getTravelHints } from '../utils/travel-hints';
+
 const WIKI_API = 'https://runescape.wiki/api.php';
 const WIKI_BASE = 'https://runescape.wiki';
 
@@ -251,25 +253,32 @@ function wikitextToSteps(wikitext: string, sectionTitle: string, baseOrder: numb
   const lines = wikitext.split('\n');
 
   let paragraphBuffer: string[] = [];
+  let paragraphLinks: string[] = [];
   let order = baseOrder;
 
+  const pushStep = (rawText: string, links: string[]) => {
+    const text = stripWikiMarkup(rawText).trim();
+    if (text.length < 8) return;
+    steps.push({
+      id: `${sectionTitle}-${order}`,
+      sectionTitle,
+      text,
+      order: order++,
+      travelHints: getTravelHints(text, links),
+    });
+  };
+
   const flushParagraph = () => {
-    const text = stripWikiMarkup(paragraphBuffer.join(' ')).trim();
-    if (text.length > 20) {
-      steps.push({
-        id: `${sectionTitle}-${order}`,
-        sectionTitle,
-        text,
-        order: order++,
-      });
+    if (paragraphBuffer.length > 0) {
+      pushStep(paragraphBuffer.join(' '), paragraphLinks);
     }
     paragraphBuffer = [];
+    paragraphLinks = [];
   };
 
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Skip headings, images, maps
     if (trimmed.startsWith('=')) continue;
     if (trimmed.startsWith('[[File:')) continue;
     if (trimmed.startsWith('{{Map:')) continue;
@@ -279,22 +288,15 @@ function wikitextToSteps(wikitext: string, sectionTitle: string, baseOrder: numb
       continue;
     }
 
-    // List items become individual steps
     if (trimmed.startsWith('*') || trimmed.startsWith('#')) {
       flushParagraph();
-      const text = stripWikiMarkup(trimmed.replace(/^[*#]+\s*/, '')).trim();
-      if (text.length > 5) {
-        steps.push({
-          id: `${sectionTitle}-${order}`,
-          sectionTitle,
-          text,
-          order: order++,
-        });
-      }
+      const links = extractWikiLinks(trimmed);
+      pushStep(trimmed.replace(/^[*#]+\s*/, ''), links);
       continue;
     }
 
     paragraphBuffer.push(trimmed);
+    paragraphLinks.push(...extractWikiLinks(trimmed));
   }
 
   flushParagraph();
@@ -349,6 +351,7 @@ export async function fetchQuestGuide(pageName: string): Promise<import('../type
       sectionTitle: 'Getting started',
       text: metadata.start,
       order: order++,
+      travelHints: getTravelHints(metadata.start),
     });
   }
 

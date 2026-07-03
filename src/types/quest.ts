@@ -18,11 +18,17 @@ export interface QuestMetadata {
   isMiniquest: boolean;
 }
 
+export interface TravelHint {
+  location: string;
+  methods: Array<{ name: string; detail: string; members?: boolean }>;
+}
+
 export interface QuestStep {
   id: string;
   sectionTitle: string;
   text: string;
   order: number;
+  travelHints: TravelHint[];
 }
 
 export interface QuestGuide {
