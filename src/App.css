@@ -1235,6 +1235,18 @@
 .rec-btn { display: flex; flex-direction: column; width: 100%; text-align: left; padding: 4px 0; font-size: 11px; border-bottom: 1px solid var(--border); }
 .rec-reason { font-size: 9px; color: var(--text-muted); }
 
+/* v0.6.1 home screen — obvious new UI */
+.home-hero { margin-bottom: 10px; padding: 10px 12px; background: linear-gradient(135deg, rgba(74,158,63,0.15), rgba(74,144,217,0.1)); border: 1px solid rgba(74,158,63,0.35); border-radius: var(--radius-sm); }
+.home-title { font-size: 16px; font-weight: 700; color: #7dd870; margin-bottom: 2px; }
+.home-subtitle { font-size: 10px; color: var(--text-muted); }
+.search-section-title { font-size: 13px; color: var(--accent); }
+.official-guides-banner { margin-bottom: 12px; padding: 10px; background: rgba(74,158,63,0.1); border: 2px solid rgba(74,158,63,0.4); border-radius: var(--radius-sm); }
+.official-guides-header { margin-bottom: 8px; }
+.official-guides-label { font-size: 11px; font-weight: 700; color: #7dd870; text-transform: uppercase; letter-spacing: 0.04em; }
+.official-guides-pills { display: flex; flex-direction: column; gap: 4px; }
+.official-guide-pill { display: block; width: 100%; text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 600; color: #e8dcc8; background: rgba(0,0,0,0.25); border: 1px solid rgba(74,158,63,0.3); border-radius: var(--radius-sm); transition: all 0.15s; }
+.official-guide-pill:hover { background: rgba(74,158,63,0.25); border-color: #4a9e3f; color: #7dd870; transform: translateX(4px); }
+
 /* ═══════════════════════════════════════════════════════════
    v0.6.0 — OSRS Quest Helper-style panel (qh-*)
    ═══════════════════════════════════════════════════════════ */

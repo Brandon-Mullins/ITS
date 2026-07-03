@@ -76,14 +76,24 @@ export default function App() {
         const [index, savedSettings] = await Promise.all([loadQuestIndex(), loadSettings()]);
         setQuests(index);
         const merged: AppSettings = { ...DEFAULT_SETTINGS, ...savedSettings };
+        const appVersion = packageJson.version;
+
         if ((merged.settingsSchemaVersion ?? 0) < CURRENT_SCHEMA_VERSION) {
           merged.settingsSchemaVersion = CURRENT_SCHEMA_VERSION;
           merged.attachToGame = false;
           merged.tutorialComplete = false;
+        }
+
+        if (merged.lastSeenVersion !== appVersion) {
+          merged.lastSeenVersion = appVersion;
+          merged.attachToGame = false;
           await saveSettings(merged);
           setShowWhatsNew(true);
-          setView('goals');
+        } else if ((savedSettings.settingsSchemaVersion ?? 0) < CURRENT_SCHEMA_VERSION) {
+          await saveSettings(merged);
+          setShowWhatsNew(true);
         }
+
         setSettings(merged);
 
         if (savedSettings.playerRsn) {

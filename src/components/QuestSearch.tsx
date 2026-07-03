@@ -4,7 +4,7 @@ import type { PlayerQuestData } from '../utils/quest-match';
 import { buildPlayerQuestMap, mapPlayerStatus, type QuestPlannerStatus } from '../utils/quest-match';
 import { fetchPlayerQuests } from '../services/player';
 import { buildPlannerSummary } from '../services/quest-planner';
-import { getCuratedQuest } from '../data/quests';
+import { CURATED_QUESTS, getCuratedQuest } from '../data/quests';
 import { DEMO_RSN } from '../plugin-api';
 
 interface QuestSearchProps {
@@ -133,8 +133,31 @@ export default function QuestSearch({
 
   return (
     <div className="quest-search">
+      <div className="home-hero">
+        <h2 className="home-title">RS3 Quest Helper</h2>
+        <p className="home-subtitle">OSRS-style step guides · Official routes · Item tracking</p>
+      </div>
+
+      <div className="official-guides-banner">
+        <div className="official-guides-header">
+          <span className="official-guides-label">⭐ Official Guides — click to open new UI</span>
+        </div>
+        <div className="official-guides-pills">
+          {CURATED_QUESTS.map((q) => (
+            <button
+              key={q.id}
+              type="button"
+              className="official-guide-pill"
+              onClick={() => onSelect(q.pageName)}
+            >
+              {q.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="search-header">
-        <h2>Quest Guide</h2>
+        <h2 className="search-section-title">All Quests</h2>
         <button type="button" className="btn-ghost btn-sm" onClick={onRefreshIndex} title="Refresh from Wiki">
           ↻ Wiki
         </button>

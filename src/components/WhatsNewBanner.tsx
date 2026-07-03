@@ -9,7 +9,7 @@ export default function WhatsNewBanner({ version, onDismiss, onOpenGoals }: What
     <div className="whats-new-banner">
       <div className="whats-new-content">
         <strong>v{version} — OSRS-style Quest Helper UI!</strong>
-        <span> Step rail · Route tabs · Official guides · Auto-detach</span>
+        <span> Green Official Guides on home · Step rail · Route tabs · Click Detach for full sidebar</span>
       </div>
       <div className="whats-new-actions">
         <button type="button" className="btn-ghost btn-sm" onClick={onOpenGoals}>Try Goals</button>
