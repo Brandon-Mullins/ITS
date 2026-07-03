@@ -58,6 +58,16 @@ Write-Host "Extracting to $distPath ..." -ForegroundColor Cyan
 Expand-Archive -Path $zipPath -DestinationPath $distPath -Force
 Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
 
+# Electron requires path.txt pointing at the executable (created by install.js normally)
+$pathTxt = Join-Path $PSScriptRoot "node_modules\electron\path.txt"
+[System.IO.File]::WriteAllText($pathTxt, "electron.exe")
+
+# Ensure dist/version exists (install.js checks this too)
+$versionFile = Join-Path $distPath "version"
+if (-not (Test-Path $versionFile)) {
+    [System.IO.File]::WriteAllText($versionFile, "v$version")
+}
+
 $exePath = Join-Path $distPath "electron.exe"
 if (Test-Path $exePath) {
     Write-Host ""
