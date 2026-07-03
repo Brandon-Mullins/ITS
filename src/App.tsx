@@ -14,7 +14,7 @@ import {
 } from './services/storage';
 import { fetchQuestIndex } from './services/wiki';
 import { fetchPlayerQuests } from './services/player';
-import { initAdapters } from './plugin-api';
+import { initAdapters, DEMO_RSN } from './plugin-api';
 import { useGameAttach } from './hooks/useGameAttach';
 import TitleBar from './components/TitleBar';
 import QuestSearch from './components/QuestSearch';
@@ -24,7 +24,8 @@ import GoalMode from './components/GoalMode';
 import QuestEditor from './components/QuestEditor';
 import WhyRs3Page from './components/WhyRs3Page';
 import TutorialOverlay, { applyAccessibility } from './components/TutorialOverlay';
-import { DEMO_RSN } from './plugin-api';
+import WhatsNewBanner from './components/WhatsNewBanner';
+import AttachModeHint from './components/AttachModeHint';
 import './App.css';
 
 type AppView = 'search' | 'guide' | 'goals' | 'editor' | 'why';
@@ -40,6 +41,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   tutorialComplete: false,
 };
 
+const CURRENT_SCHEMA_VERSION = 5;
+
 export default function App() {
   const [quests, setQuests] = useState<QuestIndexEntry[]>([]);
   const [selectedPageName, setSelectedPageName] = useState<string | null>(null);
@@ -51,6 +54,7 @@ export default function App() {
   const [guideLoading, setGuideLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<AppView>('search');
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
 
   const handleSettingsChange = useCallback(async (updates: Partial<AppSettings>) => {
     setSettings((prev) => {
@@ -71,7 +75,15 @@ export default function App() {
       try {
         const [index, savedSettings] = await Promise.all([loadQuestIndex(), loadSettings()]);
         setQuests(index);
-        setSettings({ ...DEFAULT_SETTINGS, ...savedSettings });
+        const merged: AppSettings = { ...DEFAULT_SETTINGS, ...savedSettings };
+        if ((merged.settingsSchemaVersion ?? 0) < CURRENT_SCHEMA_VERSION) {
+          merged.settingsSchemaVersion = CURRENT_SCHEMA_VERSION;
+          merged.tutorialComplete = false;
+          await saveSettings(merged);
+          setShowWhatsNew(true);
+          setView('goals');
+        }
+        setSettings(merged);
 
         if (savedSettings.attachToGame && window.electronAPI?.gameAttach) {
           await window.electronAPI.gameAttach();
@@ -192,26 +204,40 @@ export default function App() {
   if (loading) {
     return (
       <div className={`overlay ${a11yClass}`}>
-        <TitleBar settings={settings} onSettingsChange={handleSettingsChange} onToggleAttach={toggleAttach} />
+        <TitleBar settings={settings} version={packageJson.version} onSettingsChange={handleSettingsChange} onToggleAttach={toggleAttach} />
         <div className="content loading-state"><div className="spinner" /><p>Loading quest database…</p></div>
       </div>
     );
   }
 
+  const isAttached = settings.attachToGame;
+
   return (
-    <div className={`overlay app-layout ${a11yClass}`}>
-      <TitleBar settings={settings} onSettingsChange={handleSettingsChange} onToggleAttach={toggleAttach} />
+    <div className={`overlay app-layout ${a11yClass} ${isAttached ? 'attach-mode' : 'browse-mode'}`}>
+        <TitleBar settings={settings} version={packageJson.version} onSettingsChange={handleSettingsChange} onToggleAttach={toggleAttach} />
+
+      {showWhatsNew && !isAttached && (
+        <WhatsNewBanner
+          version={packageJson.version}
+          onDismiss={() => setShowWhatsNew(false)}
+          onOpenGoals={() => { setView('goals'); setShowWhatsNew(false); }}
+        />
+      )}
+
+      {isAttached && <AttachModeHint onDetach={toggleAttach} />}
 
       <div className="app-body">
-        <Sidebar
-          guide={guide}
-          progress={progress}
-          currentIndex={currentStepIndex}
-          onSelectStep={(i) => updateProgress({ currentStepIndex: i })}
-          curatedQuestNames={curatedList}
-          view={view}
-          onNavigate={setView}
-        />
+        {!isAttached && (
+          <Sidebar
+            guide={guide}
+            progress={progress}
+            currentIndex={currentStepIndex}
+            onSelectStep={(i) => updateProgress({ currentStepIndex: i })}
+            curatedQuestNames={curatedList}
+            view={view}
+            onNavigate={setView}
+          />
+        )}
 
         <div className="main-panel">
           {error && (

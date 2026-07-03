@@ -1,12 +1,18 @@
 import type { QuestGuide, QuestProgress } from '../types/quest';
 import { CURATED_QUESTS } from '../data/quests';
 
+const NAV_ITEMS = [
+  { id: 'search' as const, label: 'Quests', icon: '📜' },
+  { id: 'goals' as const, label: 'Goals', icon: '🎯' },
+  { id: 'editor' as const, label: 'Editor', icon: '✏' },
+  { id: 'why' as const, label: 'Why RS3', icon: '💡' },
+];
+
 interface SidebarProps {
   guide: QuestGuide | null;
   progress: QuestProgress | null;
   currentIndex: number;
   onSelectStep: (index: number) => void;
-  onSelectQuest?: (pageName: string) => void;
   curatedQuestNames?: Array<{ pageName: string; name: string }>;
   view: 'search' | 'guide' | 'goals' | 'editor' | 'why';
   onNavigate: (view: SidebarProps['view']) => void;
@@ -24,14 +30,15 @@ export default function Sidebar({
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav">
-        {(['search', 'goals', 'editor', 'why'] as const).map((v) => (
+        {NAV_ITEMS.map((item) => (
           <button
-            key={v}
+            key={item.id}
             type="button"
-            className={`sidebar-nav-btn ${view === v ? 'active' : ''}`}
-            onClick={() => onNavigate(v)}
+            className={`sidebar-nav-btn ${view === item.id ? 'active' : ''}`}
+            onClick={() => onNavigate(item.id)}
           >
-            {v === 'search' ? 'Quests' : v === 'goals' ? 'Goals' : v === 'editor' ? 'Editor' : 'Why RS3'}
+            <span className="sidebar-nav-icon">{item.icon}</span>
+            <span className="sidebar-nav-label">{item.label}</span>
           </button>
         ))}
       </nav>
@@ -49,7 +56,7 @@ export default function Sidebar({
                   onClick={() => onSelectStep(i)}
                 >
                   <span className="step-num">{i + 1}</span>
-                  <span className="step-preview">{step.text.slice(0, 40)}…</span>
+                  <span className="step-preview">{step.text.slice(0, 36)}…</span>
                 </button>
               </li>
             ))}
@@ -57,9 +64,9 @@ export default function Sidebar({
         </div>
       )}
 
-      {view === 'search' && curatedQuestNames.length > 0 && (
+      {view === 'search' && (
         <div className="sidebar-curated">
-          <h3 className="sidebar-title">Official Guides</h3>
+          <h3 className="sidebar-title">7 Official Guides</h3>
           <ul className="sidebar-quest-list">
             {curatedQuestNames.map((q) => (
               <li key={q.pageName}>

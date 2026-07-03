@@ -2,12 +2,14 @@ import type { AppSettings } from '../types/quest';
 
 interface TitleBarProps {
   settings: AppSettings;
+  version?: string;
   onSettingsChange: (updates: Partial<AppSettings>) => void;
   onToggleAttach: () => void;
 }
 
 export default function TitleBar({
   settings,
+  version,
   onSettingsChange,
   onToggleAttach,
 }: TitleBarProps) {
@@ -16,6 +18,7 @@ export default function TitleBar({
       <div className="title-bar-drag">
         <span className="title-icon">⚔</span>
         <span className="title-text">RS3 Quest Helper</span>
+        {version && <span className="title-version">v{version}</span>}
       </div>
       <div className="title-bar-controls">
         <button

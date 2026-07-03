@@ -1150,10 +1150,20 @@
 /* v0.5.0 — App layout with sidebar */
 .app-layout { display: flex; flex-direction: column; height: 100vh; }
 .app-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
-.sidebar { width: 100px; flex-shrink: 0; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; font-size: 10px; }
-.sidebar-nav { display: flex; flex-direction: column; gap: 2px; padding: 4px; }
-.sidebar-nav-btn { padding: 6px 4px; font-size: 9px; border-radius: var(--radius-sm); color: var(--text-muted); text-align: center; }
-.sidebar-nav-btn.active { background: var(--accent-dim); color: var(--accent); }
+.sidebar { width: 130px; flex-shrink: 0; background: var(--bg-secondary); border-right: 2px solid var(--accent-dim); display: flex; flex-direction: column; overflow-y: auto; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 4px; padding: 8px 4px; }
+.sidebar-nav-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; font-size: 9px; border-radius: var(--radius-sm); color: var(--text-muted); text-align: center; width: 100%; }
+.sidebar-nav-btn.active { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--border-strong); }
+.sidebar-nav-icon { font-size: 18px; line-height: 1; }
+.sidebar-nav-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.browse-mode { min-width: 480px; }
+.title-version { font-size: 9px; color: var(--accent); background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; margin-left: 6px; font-weight: 700; }
+.whats-new-banner { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; background: linear-gradient(90deg, rgba(201,162,39,0.25), rgba(106,176,255,0.15)); border-bottom: 1px solid var(--accent); font-size: 11px; }
+.whats-new-content strong { color: var(--accent); }
+.whats-new-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.attach-hint { display: flex; align-items: center; justify-content: space-between; padding: 4px 10px; background: rgba(106,176,255,0.12); border-bottom: 1px solid rgba(106,176,255,0.3); font-size: 10px; color: #6ab0ff; }
+.attach-mode .main-panel { width: 100%; }
+.attach-mode .sidebar { display: none; }
 .sidebar-title { font-size: 10px; color: var(--accent); margin: 6px 4px 4px; }
 .sidebar-step-list, .sidebar-quest-list { list-style: none; padding: 0 4px; margin: 0; }
 .sidebar-step-btn { display: flex; gap: 4px; width: 100%; text-align: left; padding: 3px 2px; font-size: 9px; color: var(--text-muted); }

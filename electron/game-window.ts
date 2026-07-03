@@ -127,8 +127,8 @@ export async function findGameWindow(): Promise<GameWindowInfo> {
   }
 }
 
-const OVERLAY_WIDTH = 380;
-const OVERLAY_HEIGHT = 420;
+const OVERLAY_WIDTH = 400;
+const OVERLAY_HEIGHT = 460;
 const ATTACH_POLL_MS = 500;
 
 function computeOverlayBounds(game: WindowBounds): WindowBounds {

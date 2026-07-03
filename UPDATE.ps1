@@ -1,4 +1,4 @@
-# Force-update RS3 Quest Helper to latest version
+# Force-update RS3 Quest Helper to latest version (v0.5.1+)
 $ErrorActionPreference = "Stop"
 
 $ProjectDir = "C:\Users\bmull\ITS"
@@ -11,10 +11,9 @@ $ElectronPathTxt = "$ProjectDir\node_modules\electron\path.txt"
 $SavedElectron = "$env:TEMP\electron-dist-backup"
 
 Write-Host ""
-Write-Host "  RS3 Quest Helper - Force Update" -ForegroundColor Yellow
+Write-Host "  RS3 Quest Helper - Force Update (v0.5.1)" -ForegroundColor Yellow
 Write-Host ""
 
-# Backup electron binary so we don't have to re-download it
 if (Test-Path $ElectronDist) {
     Write-Host "Backing up Electron binary..." -ForegroundColor Cyan
     if (Test-Path $SavedElectron) { Remove-Item $SavedElectron -Recurse -Force }
@@ -33,14 +32,14 @@ if (Test-Path $TempExtract) { Remove-Item $TempExtract -Recurse -Force }
 Expand-Archive -Path $TempZip -DestinationPath $TempExtract -Force
 
 $SourceDir = Get-ChildItem $TempExtract | Select-Object -First 1
-if (Test-Path $ProjectDir) { Remove-Item $ProjectDir -Recurse -Force }
-Move-Item $SourceDir.FullName $ProjectDir
 
-# Restore electron
+# In-place copy (keeps node_modules)
+Write-Host "Copying files into $ProjectDir ..." -ForegroundColor Cyan
+Copy-Item "$($SourceDir.FullName)\*" $ProjectDir -Recurse -Force
+
 if (Test-Path $SavedElectron) {
     Write-Host "Restoring Electron binary..." -ForegroundColor Cyan
     $DestDist = "$ProjectDir\node_modules\electron\dist"
-    New-Item -ItemType Directory -Force -Path (Split-Path $DestDist) | Out-Null
     if (-not (Test-Path "$ProjectDir\node_modules\electron")) {
         Set-Location $ProjectDir
         npm install electron --force 2>$null
@@ -58,17 +57,22 @@ Set-Location $ProjectDir
 Write-Host "Installing dependencies..." -ForegroundColor Cyan
 npm install
 
-# Cleanup
 Remove-Item $TempZip -Force -ErrorAction SilentlyContinue
 Remove-Item $TempExtract -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host ""
-Write-Host "[OK] Updated to latest version!" -ForegroundColor Green
+Write-Host "[OK] Updated to v0.5.1!" -ForegroundColor Green
 Write-Host ""
 Write-Host "You should now see:" -ForegroundColor Yellow
-Write-Host "  - RuneScape name input box at the top"
-Write-Host "  - Quest status colors when you load your RSN"
-Write-Host "  - No more Skills.split errors"
+Write-Host "  - v0.5.1 badge in the title bar"
+Write-Host "  - LEFT SIDEBAR with Quests / Goals / Editor / Why RS3 tabs"
+Write-Host "  - What's New banner + tutorial on first launch"
+Write-Host "  - Goals tab with Fairy Rings, Prifddinas, etc."
+Write-Host "  - Smart routes (Fastest / Ironman / No teleport) on quest steps"
+Write-Host ""
+Write-Host "IMPORTANT: Click the LINK icon to DETACH from RS3 to see full UI." -ForegroundColor Cyan
+Write-Host "  Attached mode = compact step overlay only"
+Write-Host "  Detached mode = full planner with sidebar"
 Write-Host ""
 Write-Host "Starting app..." -ForegroundColor Cyan
 npm run electron:dev

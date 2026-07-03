@@ -85,6 +85,7 @@ export interface AppSettings {
   demoMode?: boolean;
   tutorialComplete?: boolean;
   selectedGoal?: string;
+  settingsSchemaVersion?: number;
 }
 
 export interface GameWindowInfo {
