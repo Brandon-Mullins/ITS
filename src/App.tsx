@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AppSettings, QuestGuide, QuestIndexEntry, QuestProgress } from './types/quest';
+import packageJson from '../package.json';
 import {
   loadQuestIndex,
   loadQuestGuide,
@@ -214,7 +215,9 @@ export default function App() {
         <span className={`footer-badge ${settings.attachToGame ? 'attached' : ''}`}>
           {settings.attachToGame ? '🔒 Attached' : 'Read-only overlay'}
         </span>
-        <span className={`footer-note ${attachError ? 'status-error' : ''}`}>{footerStatus}</span>
+        <span className={`footer-note ${attachError ? 'status-error' : ''}`}>
+          {footerStatus} · v{packageJson.version}
+        </span>
       </footer>
     </div>
   );

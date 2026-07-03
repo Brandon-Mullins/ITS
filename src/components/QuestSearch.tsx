@@ -103,6 +103,15 @@ export default function QuestSearch({
     }
   };
 
+  useEffect(() => {
+    if (savedRsn && savedRsn.trim() && !playerData && !playerLoading) {
+      setRsnInput(savedRsn);
+      fetchPlayerQuests(savedRsn.trim())
+        .then((data) => setPlayerData(data))
+        .catch(() => {});
+    }
+  }, [savedRsn]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="quest-search">
       <div className="search-header">
