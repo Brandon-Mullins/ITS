@@ -1,0 +1,211 @@
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import path from 'path';
+import fs from 'fs';
+import { GameWindowTracker, findGameWindow } from './game-window';
+import { scanGameScreen, disposeScreenReader, extractStepKeywords, resetBankScanCache } from './screen-reader';
+import { fetchPlayerQuestsFromApi } from './player-api';
+import type { ScreenReaderConfig } from './screen-reader';
+
+const isDev = !app.isPackaged;
+
+let mainWindow: BrowserWindow | null = null;
+let gameTracker: GameWindowTracker | null = null;
+let screenReaderTimer: ReturnType<typeof setInterval> | null = null;
+let screenReaderConfig: ScreenReaderConfig | null = null;
+
+const SCREEN_READER_INTERVAL_MS = 2000;
+
+function getDataDir(): string {
+  return path.join(app.getPath('userData'), 'quest-data');
+}
+
+function ensureDataDir(): void {
+  const dir = getDataDir();
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function createWindow(): void {
+  mainWindow = new BrowserWindow({
+    width: 520,
+    height: 580,
+    minWidth: 400,
+    minHeight: 420,
+    maxWidth: 640,
+    maxHeight: 800,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    resizable: true,
+    skipTaskbar: false,
+    hasShadow: true,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
+
+  mainWindow.on('closed', () => {
+    stopScreenReader();
+    gameTracker?.detach();
+    mainWindow = null;
+    gameTracker = null;
+  });
+
+  gameTracker = new GameWindowTracker(mainWindow);
+}
+
+function stopScreenReader(): void {
+  if (screenReaderTimer) {
+    clearInterval(screenReaderTimer);
+    screenReaderTimer = null;
+  }
+  screenReaderConfig = null;
+}
+
+function startScreenReader(config: ScreenReaderConfig): void {
+  stopScreenReader();
+  resetBankScanCache();
+  screenReaderConfig = {
+    ...config,
+    stepKeywords: config.stepKeywords.length > 0
+      ? config.stepKeywords
+      : extractStepKeywords(config.currentStepText),
+  };
+
+  const runScan = async () => {
+    if (!mainWindow || mainWindow.isDestroyed() || !screenReaderConfig) return;
+    const gameInfo = gameTracker?.getLastGameInfo() ?? await findGameWindow();
+    if (!gameInfo.found) return;
+
+    try {
+      const result = await scanGameScreen(gameInfo, screenReaderConfig);
+      if (result && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('screen-reader:result', result);
+      }
+    } catch {
+      // OCR failures are non-fatal
+    }
+  };
+
+  runScan();
+  screenReaderTimer = setInterval(runScan, SCREEN_READER_INTERVAL_MS);
+}
+
+app.whenReady().then(() => {
+  ensureDataDir();
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
+
+app.on('window-all-closed', () => {
+  stopScreenReader();
+  disposeScreenReader();
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+ipcMain.handle('window:minimize', () => {
+  mainWindow?.minimize();
+});
+
+ipcMain.handle('window:close', () => {
+  mainWindow?.close();
+});
+
+ipcMain.handle('window:toggle-always-on-top', (_event, value: boolean) => {
+  mainWindow?.setAlwaysOnTop(value);
+  return value;
+});
+
+ipcMain.handle('window:set-opacity', (_event, opacity: number) => {
+  mainWindow?.setOpacity(opacity);
+});
+
+ipcMain.handle('shell:open-external', (_event, url: string) => {
+  shell.openExternal(url);
+});
+
+ipcMain.handle('storage:read', (_event, filename: string) => {
+  ensureDataDir();
+  const filePath = path.join(getDataDir(), filename);
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('storage:write', (_event, filename: string, data: unknown) => {
+  ensureDataDir();
+  const filePath = path.join(getDataDir(), filename);
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  return true;
+});
+
+ipcMain.handle('storage:read-bundled', (_event, filename: string) => {
+  const bundledPath = isDev
+    ? path.join(__dirname, '..', 'data', filename)
+    : path.join(process.resourcesPath, 'data', filename);
+  if (!fs.existsSync(bundledPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(bundledPath, 'utf-8'));
+  } catch {
+    return null;
+  }
+});
+
+// Game window attach
+ipcMain.handle('game:find', async () => {
+  return findGameWindow();
+});
+
+ipcMain.handle('game:attach', async () => {
+  if (!gameTracker) return { attached: false };
+  gameTracker.attach();
+  return { attached: true, game: gameTracker.getLastGameInfo() };
+});
+
+ipcMain.handle('game:detach', async () => {
+  gameTracker?.detach();
+  return { attached: false };
+});
+
+ipcMain.handle('game:status', async () => {
+  return {
+    attached: gameTracker?.isAttached() ?? false,
+    game: gameTracker?.getLastGameInfo() ?? null,
+  };
+});
+
+// Screen reader
+ipcMain.handle('screen-reader:start', async (_event, config: ScreenReaderConfig) => {
+  startScreenReader(config);
+  return true;
+});
+
+ipcMain.handle('screen-reader:stop', async () => {
+  stopScreenReader();
+  return true;
+});
+
+ipcMain.handle('player:fetch-quests', async (_event, rsn: string) => {
+  return fetchPlayerQuestsFromApi(rsn);
+});
