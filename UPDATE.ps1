@@ -93,4 +93,8 @@ Write-Host "  - LEFT sidebar: Quests | Goals | Editor | Why RS3"
 Write-Host "  - Click DETACH (link icon) if locked to RS3 — attached = compact only"
 Write-Host ""
 Write-Host "Starting app..." -ForegroundColor Cyan
-npm run electron:dev
+if (Test-Path (Join-Path $ProjectDir "LAUNCH.ps1")) {
+    & (Join-Path $ProjectDir "LAUNCH.ps1")
+} else {
+    npm run electron:dev
+}

@@ -17,13 +17,11 @@ if not exist "package.json" (
     exit /b 1
 )
 
-:: Kill ALL old copies — including built .exe shortcuts
 echo [1/3] Closing any old Quest Helper windows...
 taskkill /F /IM electron.exe >nul 2>&1
 taskkill /F /IM "RS3 Quest Helper.exe" >nul 2>&1
 timeout /t 2 /nobreak >nul
 
-:: Show version from package.json
 for /f "tokens=2 delims=:," %%v in ('findstr /C:"\"version\"" package.json') do set VER=%%v
 set VER=%VER:"=%
 set VER=%VER: =%
@@ -36,15 +34,13 @@ if "%VER%" LSS "0.6.0" (
     exit /b 1
 )
 
-:: Clear vite cache so UI always refreshes
 if exist "node_modules\.vite" rmdir /s /q "node_modules\.vite" 2>nul
 
 echo [3/3] Starting Quest Helper...
 echo.
-echo  >>> A SEPARATE WINDOW will open (not your browser). <<<
-echo  >>> Look for v%VER% in the title bar.              <<<
-echo  >>> Click "Fairy Tale II" in the green Official    <<<
-echo  >>> Guides section to see the new OSRS-style UI.    <<<
+echo  A SEPARATE WINDOW will open - not your browser.
+echo  Look for v%VER% in the title bar.
+echo  Click Fairy Tale II in the green Official Guides section.
 echo.
 echo  Keep THIS window open while using the app.
 echo.
