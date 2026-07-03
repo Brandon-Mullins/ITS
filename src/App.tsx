@@ -41,7 +41,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   tutorialComplete: false,
 };
 
-const CURRENT_SCHEMA_VERSION = 5;
+const CURRENT_SCHEMA_VERSION = 6;
 
 export default function App() {
   const [quests, setQuests] = useState<QuestIndexEntry[]>([]);
@@ -78,16 +78,13 @@ export default function App() {
         const merged: AppSettings = { ...DEFAULT_SETTINGS, ...savedSettings };
         if ((merged.settingsSchemaVersion ?? 0) < CURRENT_SCHEMA_VERSION) {
           merged.settingsSchemaVersion = CURRENT_SCHEMA_VERSION;
+          merged.attachToGame = false;
           merged.tutorialComplete = false;
           await saveSettings(merged);
           setShowWhatsNew(true);
           setView('goals');
         }
         setSettings(merged);
-
-        if (savedSettings.attachToGame && window.electronAPI?.gameAttach) {
-          await window.electronAPI.gameAttach();
-        }
 
         if (savedSettings.playerRsn) {
           fetchPlayerQuests(savedSettings.playerRsn).then(setPlayerData).catch(() => {});
@@ -261,9 +258,11 @@ export default function App() {
               progress={progress}
               loading={guideLoading}
               uiMode={settings.uiMode}
+              isAttached={isAttached}
               onBack={() => { setView('search'); setGuide(null); }}
               onRefresh={handleRefreshGuide}
               onProgressChange={updateProgress}
+              onDetach={toggleAttach}
             />
           )}
 

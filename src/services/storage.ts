@@ -1,5 +1,6 @@
 import type { AppSettings, QuestGuide, QuestIndexEntry, QuestProgress } from '../types/quest';
 import { resolveQuestGuide } from './quest-engine';
+import { enhanceWikiGuide } from './guide-enhancer';
 
 const INDEX_FILE = 'quest-index.json';
 const GUIDE_PREFIX = 'guide-';
@@ -40,17 +41,20 @@ export async function loadQuestGuide(pageName: string): Promise<QuestGuide | nul
 
   if (isElectron()) {
     const cached = await window.electronAPI.storageRead<QuestGuide>(guideFilename(pageName));
-    if (cached) return cached;
+    if (cached) {
+      return cached.source === 'curated' ? cached : enhanceWikiGuide({ ...cached, source: 'wiki' });
+    }
   }
 
   const { fetchQuestGuide } = await import('./wiki');
   const guide = await fetchQuestGuide(pageName);
+  const enhanced = enhanceWikiGuide({ ...guide, source: 'wiki' });
 
   if (isElectron()) {
-    await window.electronAPI.storageWrite(guideFilename(pageName), guide);
+    await window.electronAPI.storageWrite(guideFilename(pageName), enhanced);
   }
 
-  return guide;
+  return enhanced;
 }
 
 export async function refreshQuestGuide(pageName: string): Promise<QuestGuide> {
@@ -59,12 +63,13 @@ export async function refreshQuestGuide(pageName: string): Promise<QuestGuide> {
 
   const { fetchQuestGuide } = await import('./wiki');
   const guide = await fetchQuestGuide(pageName);
+  const enhanced = enhanceWikiGuide({ ...guide, source: 'wiki' });
 
   if (isElectron()) {
-    await window.electronAPI.storageWrite(guideFilename(pageName), guide);
+    await window.electronAPI.storageWrite(guideFilename(pageName), enhanced);
   }
 
-  return guide;
+  return enhanced;
 }
 
 export async function loadAllProgress(): Promise<Record<string, QuestProgress>> {
