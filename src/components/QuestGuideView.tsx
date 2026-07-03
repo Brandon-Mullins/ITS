@@ -8,6 +8,7 @@ interface QuestGuideViewProps {
   guide: QuestGuide | null;
   progress: QuestProgress | null;
   loading: boolean;
+  questStatus?: string | null;
   onBack: () => void;
   onRefresh: () => void;
   onProgressChange: (updates: Partial<QuestProgress>) => void;
@@ -17,6 +18,7 @@ export default function QuestGuideView({
   guide,
   progress,
   loading,
+  questStatus,
   onBack,
   onRefresh,
   onProgressChange,
@@ -63,9 +65,39 @@ export default function QuestGuideView({
     <div className="quest-guide compact">
       <div className="guide-header compact">
         <button type="button" className="btn-ghost btn-sm" onClick={onBack}>←</button>
-        <h2 className="guide-title-compact">{metadata.name}</h2>
+        <div className="guide-title-block">
+          <h2 className="guide-title-compact">{metadata.name}</h2>
+          <div className="guide-badges compact-badges">
+            {guide.source === 'curated' && (
+              <span className="badge badge-curated">Official guide</span>
+            )}
+            {questStatus && (
+              <span className={`status-pill pill-${questStatus}`}>{questStatus}</span>
+            )}
+          </div>
+        </div>
         <button type="button" className="btn-ghost btn-sm" onClick={onRefresh}>↻</button>
       </div>
+
+      {(metadata.requirements.length > 0 || metadata.skillRequirements.length > 0) && (
+        <details className="quest-reqs compact-reqs">
+          <summary>Requirements</summary>
+          {metadata.skillRequirements.length > 0 && (
+            <ul className="req-list">
+              {metadata.skillRequirements.map((r) => (
+                <li key={r.skill}>{r.skill} {r.level}</li>
+              ))}
+            </ul>
+          )}
+          {metadata.requirements.length > 0 && (
+            <ul className="req-list">
+              {metadata.requirements.map((r) => (
+                <li key={r}>{r}</li>
+              ))}
+            </ul>
+          )}
+        </details>
+      )}
 
       {steps.length > 0 ? (
         <>
@@ -79,6 +111,7 @@ export default function QuestGuideView({
             bankItems={progress.bankItems ?? []}
             needGeItems={progress.needGeItems ?? []}
             bankOpen={lastScan?.bankOpen ?? false}
+            questStatus={questStatus}
           />
 
           <div className="step-nav compact">

@@ -1,4 +1,5 @@
 import type { AppSettings, QuestGuide, QuestIndexEntry, QuestProgress } from '../types/quest';
+import { resolveQuestGuide } from './quest-engine';
 
 const INDEX_FILE = 'quest-index.json';
 const GUIDE_PREFIX = 'guide-';
@@ -34,6 +35,9 @@ export async function saveQuestIndex(index: QuestIndexEntry[]): Promise<void> {
 }
 
 export async function loadQuestGuide(pageName: string): Promise<QuestGuide | null> {
+  const curated = resolveQuestGuide(pageName);
+  if (curated) return curated;
+
   if (isElectron()) {
     const cached = await window.electronAPI.storageRead<QuestGuide>(guideFilename(pageName));
     if (cached) return cached;
@@ -50,6 +54,9 @@ export async function loadQuestGuide(pageName: string): Promise<QuestGuide | nul
 }
 
 export async function refreshQuestGuide(pageName: string): Promise<QuestGuide> {
+  const curated = resolveQuestGuide(pageName);
+  if (curated) return curated;
+
   const { fetchQuestGuide } = await import('./wiki');
   const guide = await fetchQuestGuide(pageName);
 

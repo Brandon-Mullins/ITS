@@ -104,8 +104,48 @@ export const TRAVEL_HINTS_DB: LocationEntry[] = [
     ],
   },
   {
-    aliases: ['catherby', "seers' village", 'seers village', 'seers', 'camelot', 'camelot castle'],
-    displayName: 'Catherby / Seers\' Village',
+    aliases: ['senntisten', 'senntisten cathedral', 'senntisten dig site', 'naressa', 'azzanadra'],
+    displayName: 'Senntisten',
+    methods: [
+      { name: 'Senntisten lodestone', detail: 'Teleport into Senntisten (after City of Senntisten)', members: true },
+      { name: 'Archaeology journal', detail: 'Teleport to Senntisten Dig Site', members: true },
+      { name: 'Varrock lodestone', detail: 'Run east to Senntisten entrance', members: true },
+      { name: 'Ring of wealth', detail: 'Grand Exchange → run south-east', members: true },
+    ],
+  },
+  {
+    aliases: ['varrock dig site', 'digsite', 'dig site', 'archaeology campus', 'archaeology guild'],
+    displayName: 'Varrock Dig Site / Archaeology Guild',
+    methods: [
+      { name: 'Archaeology journal', detail: 'Teleport directly to Archaeology Campus', members: true },
+      { name: 'Varrock lodestone', detail: 'Run east to the Dig Site entrance', members: true },
+      { name: 'Ring of wealth', detail: 'Grand Exchange → run south to Dig Site', members: true },
+      { name: 'Elder chronicle', detail: 'Chronicle teleport → run east', members: true },
+    ],
+  },
+  {
+    aliases: ['elemental workshop', 'elemental workshop entrance', 'seers workshop'],
+    displayName: 'Elemental Workshop',
+    methods: [
+      { name: "Seers' Village lodestone", detail: 'Run south to workshop building', members: true },
+      { name: 'Camelot Teleport', detail: 'Spellbook → run south to workshop', members: true },
+      { name: 'Fairy ring C·K·S', detail: 'Catherby → run west to Seers\' Village', members: true },
+      { name: 'Combat bracelet', detail: "Rub → Warriors' Guild → fairy ring", members: true },
+    ],
+  },
+  {
+    aliases: ["seers' village", 'seers village', 'seers', 'camelot', 'camelot castle'],
+    displayName: "Seers' Village",
+    methods: [
+      { name: "Seers' Village lodestone", detail: 'Teleport into Seers\' Village', members: true },
+      { name: 'Camelot Teleport', detail: 'Standard spellbook (45 Magic)', members: true },
+      { name: 'Fairy ring C·K·S', detail: 'Catherby area → short walk', members: true },
+      { name: 'Charter ship', detail: 'Catherby docks', members: true },
+    ],
+  },
+  {
+    aliases: ['catherby', 'catherby bank'],
+    displayName: 'Catherby',
     methods: [
       { name: "Seers' Village lodestone", detail: 'Teleport into Seers\' Village' },
       { name: 'Camelot Teleport', detail: 'Standard spellbook (45 Magic)', members: true },

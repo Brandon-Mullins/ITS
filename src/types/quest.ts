@@ -29,15 +29,25 @@ export interface QuestStep {
   text: string;
   order: number;
   travelHints: TravelHint[];
+  fastestRoutes?: string[];
   stepItems: string[];
+  recommendedItems?: string[];
   dialogueChoices: string[];
   combatWarnings: string[];
+  location?: string;
+  npc?: string;
+  completionChecks?: import('./quest-data').QuestCompletionChecks;
+  markers?: import('./quest-data').QuestMarkers;
 }
 
 export interface QuestGuide {
   metadata: QuestMetadata;
   steps: QuestStep[];
   fetchedAt: string;
+  source?: 'curated' | 'wiki';
+  questId?: string;
+  rewards?: string[];
+  unlocks?: string[];
 }
 
 export interface QuestIndexEntry {
@@ -89,6 +99,12 @@ export interface ScreenReaderConfig {
   items: string[];
   currentStepText: string;
   stepKeywords: string[];
+  completionChecks?: {
+    chatContains?: string[];
+    questJournalContains?: string[];
+    inventoryContains?: string[];
+    locationContains?: string[];
+  };
 }
 
 export interface ElectronAPI {

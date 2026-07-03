@@ -7,6 +7,12 @@ export interface ScreenReaderConfig {
   items: string[];
   currentStepText: string;
   stepKeywords: string[];
+  completionChecks?: {
+    chatContains?: string[];
+    questJournalContains?: string[];
+    inventoryContains?: string[];
+    locationContains?: string[];
+  };
 }
 
 export interface ScreenReaderResult {
@@ -299,9 +305,31 @@ export async function scanGameScreen(
     chatNorm.includes('journal') &&
     (chatNorm.includes('updated') || chatNorm.includes('progress'));
 
+  const checks = config.completionChecks;
+  let completionCheckHit = false;
+  if (checks) {
+    const chatHits =
+      (checks.chatContains ?? []).filter((p) => chatNorm.includes(p.toLowerCase())).length;
+    const journalHits =
+      (checks.questJournalContains ?? []).filter((p) => combined.includes(p.toLowerCase())).length;
+    const invHits =
+      (checks.inventoryContains ?? []).filter((p) => combined.includes(p.toLowerCase())).length;
+    const locHits =
+      (checks.locationContains ?? []).filter((p) => combined.includes(p.toLowerCase())).length;
+
+    completionCheckHit =
+      (checks.chatContains?.length ? chatHits >= 1 : false) ||
+      (checks.questJournalContains?.length ? journalHits >= 1 : false) ||
+      (checks.inventoryContains?.length ? invHits >= 1 : false) ||
+      (checks.locationContains?.length ? locHits >= 1 : false) ||
+      (chatHits >= 2) ||
+      (chatHits >= 1 && journalHits >= 1);
+  }
+
   const suggestStepComplete =
     hasCompletePhrase ||
     hasJournalUpdate ||
+    completionCheckHit ||
     (chatKeywordHits >= 2 && (hasDialogue || hasWithdraw || hasLocation)) ||
     (chatKeywordHits >= 1 && hasCompletePhrase) ||
     (keywordHits >= 2 && (hasDialogue || hasWithdraw));

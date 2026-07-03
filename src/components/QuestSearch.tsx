@@ -3,6 +3,7 @@ import type { QuestIndexEntry } from '../types/quest';
 import type { PlayerQuestData } from '../utils/quest-match';
 import { buildPlayerQuestMap, mapPlayerStatus, type QuestPlannerStatus } from '../utils/quest-match';
 import { fetchPlayerQuests } from '../services/player';
+import { getCuratedQuest } from '../data/quests';
 
 interface QuestSearchProps {
   quests: QuestIndexEntry[];
@@ -59,7 +60,7 @@ export default function QuestSearch({
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
-    return quests.filter((quest) => {
+    const list = quests.filter((quest) => {
       if (filter === 'miniquest' && !quest.isMiniquest) return false;
       if (filter === 'quest' && quest.isMiniquest) return false;
       if (filter === 'f2p' && quest.members) return false;
@@ -83,6 +84,14 @@ export default function QuestSearch({
       if (statusFilter === 'completed') return status === 'completed';
       if (statusFilter === 'locked') return status === 'locked';
       return true;
+    });
+
+    // Curated official guides first
+    return list.sort((a, b) => {
+      const aCur = getCuratedQuest(a.pageName) ? 0 : 1;
+      const bCur = getCuratedQuest(b.pageName) ? 0 : 1;
+      if (aCur !== bCur) return aCur - bCur;
+      return a.name.localeCompare(b.name);
     });
   }, [quests, query, filter, playerMap, statusFilter]);
 
@@ -221,6 +230,7 @@ export default function QuestSearch({
         {filtered.slice(0, 150).map((quest) => {
           const pq = playerMap?.get(quest.pageName);
           const plannerStatus = pq ? mapPlayerStatus(pq) : null;
+          const curated = getCuratedQuest(quest.pageName);
           return (
             <li key={quest.pageName}>
               <button
@@ -230,6 +240,7 @@ export default function QuestSearch({
               >
                 <span className="quest-name">{quest.name}</span>
                 <span className="quest-meta">
+                  {curated && <span className="badge badge-curated">Guide</span>}
                   {plannerStatus && (
                     <span className={`status-pill pill-${plannerStatus}`}>
                       {STATUS_LABELS[plannerStatus]}
@@ -238,6 +249,12 @@ export default function QuestSearch({
                   {quest.isMiniquest && <span className="badge badge-mini">Mini</span>}
                   {!quest.members && <span className="badge badge-f2p">F2P</span>}
                 </span>
+                {plannerStatus === 'locked' && curated && (
+                  <span className="quest-lock-hint">
+                    Needs: {curated.skillRequirements.map((s) => `${s.skill} ${s.level}`).join(', ') ||
+                      curated.requirements.slice(0, 2).join(' · ')}
+                  </span>
+                )}
               </button>
             </li>
           );

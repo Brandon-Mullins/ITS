@@ -1,6 +1,27 @@
 import { useEffect, useRef } from 'react';
 import type { QuestGuide, QuestProgress, ScreenReaderResult } from '../types/quest';
 
+function stepKeywordsFromStep(step: QuestGuide['steps'][0]): string[] {
+  const checks = step.completionChecks;
+  const keywords = new Set<string>();
+  for (const phrase of checks?.chatContains ?? []) {
+    for (const word of phrase.toLowerCase().split(/\s+/)) {
+      if (word.length >= 4) keywords.add(word);
+    }
+  }
+  for (const phrase of checks?.locationContains ?? []) {
+    for (const word of phrase.toLowerCase().split(/\s+/)) {
+      if (word.length >= 4) keywords.add(word);
+    }
+  }
+  if (step.npc) {
+    for (const word of step.npc.toLowerCase().split(/\s+/)) {
+      if (word.length >= 4) keywords.add(word);
+    }
+  }
+  return keywords.size > 0 ? Array.from(keywords) : [];
+}
+
 interface UseSmartDetectOptions {
   enabled: boolean;
   guide: QuestGuide | null;
@@ -30,9 +51,15 @@ export function useSmartDetect({
     const currentStep = steps[currentIndex];
 
     window.electronAPI.screenReaderStart({
-      items: guide.metadata.items,
+      items: [...new Set([
+        ...guide.metadata.items,
+        ...guide.metadata.recommended,
+        ...(currentStep?.stepItems ?? []),
+        ...(currentStep?.recommendedItems ?? []),
+      ])],
       currentStepText: currentStep?.text ?? '',
-      stepKeywords: [],
+      stepKeywords: currentStep ? stepKeywordsFromStep(currentStep) : [],
+      completionChecks: currentStep?.completionChecks,
     });
 
     const unsubscribe = window.electronAPI.onScreenReaderResult((result) => {
