@@ -1,5 +1,6 @@
 import type { StructuredQuestDefinition } from '../../types/quest-data';
 import { questStep } from './helpers';
+import { ROUTES } from './routes';
 
 const quest: StructuredQuestDefinition = {
   id: 'elemental-workshop-2',
@@ -17,14 +18,16 @@ const quest: StructuredQuestDefinition = {
   enemies: ['Earth Elemental (level 44)'],
   rewards: ['Ability to smith elemental shields', 'Smithing XP', 'Magic XP'],
   unlocks: ['Elemental shield smithing'],
+  itemBrain: {
+    required: ['Pickaxe', 'Hammer', 'Coal'],
+    recommended: [],
+    geBuyable: ['Coal'],
+    ironmanNotes: { Coal: 'Mine or buy from vendors' },
+  },
   steps: [
     questStep('ew2-step-1', 'Travel to the Elemental Workshop beneath Seers\' Village.', {
       location: 'Elemental Workshop',
-      fastestRoutes: [
-        "Seers' Village lodestone → enter workshop building south of bank.",
-        'Camelot Teleport → run south to workshop.',
-        'Fairy ring C·K·S → Catherby → run west.',
-      ],
+      travelRoutes: ROUTES.elementalWorkshop(),
       completionChecks: {
         locationContains: ['Elemental Workshop', 'Seers'],
       },

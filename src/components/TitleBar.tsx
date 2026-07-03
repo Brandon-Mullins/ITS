@@ -28,11 +28,31 @@ export default function TitleBar({
         </button>
         <button
           type="button"
-          className={`control-btn ${settings.alwaysOnTop ? 'active' : ''}`}
-          title="Toggle always on top"
-          onClick={() => onSettingsChange({ alwaysOnTop: !settings.alwaysOnTop })}
+          className="control-btn"
+          title={`UI mode: ${settings.uiMode ?? 'standard'} (click to cycle)`}
+          onClick={() => {
+            const modes = ['standard', 'newbie', 'veteran'] as const;
+            const idx = modes.indexOf(settings.uiMode ?? 'standard');
+            onSettingsChange({ uiMode: modes[(idx + 1) % modes.length] });
+          }}
         >
-          📌
+          {settings.uiMode === 'veteran' ? '⚡' : settings.uiMode === 'newbie' ? '🌱' : '◎'}
+        </button>
+        <button
+          type="button"
+          className={`control-btn ${settings.accessibility?.highContrast ? 'active' : ''}`}
+          title="Toggle high contrast"
+          onClick={() =>
+            onSettingsChange({
+              accessibility: {
+                ...settings.accessibility,
+                largeText: settings.accessibility?.largeText ?? false,
+                highContrast: !settings.accessibility?.highContrast,
+              },
+            })
+          }
+        >
+          ◐
         </button>
         <button
           type="button"

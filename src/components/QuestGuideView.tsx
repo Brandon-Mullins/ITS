@@ -9,6 +9,7 @@ interface QuestGuideViewProps {
   progress: QuestProgress | null;
   loading: boolean;
   questStatus?: string | null;
+  uiMode?: 'newbie' | 'veteran' | 'standard';
   onBack: () => void;
   onRefresh: () => void;
   onProgressChange: (updates: Partial<QuestProgress>) => void;
@@ -19,6 +20,7 @@ export default function QuestGuideView({
   progress,
   loading,
   questStatus,
+  uiMode = 'standard',
   onBack,
   onRefresh,
   onProgressChange,
@@ -107,11 +109,13 @@ export default function QuestGuideView({
             totalSteps={steps.length}
             isCompleted={progress.completedSteps.includes(currentStep.id)}
             metadata={metadata}
+            pageName={metadata.pageName}
             collectedItems={progress.collectedItems ?? []}
             bankItems={progress.bankItems ?? []}
             needGeItems={progress.needGeItems ?? []}
             bankOpen={lastScan?.bankOpen ?? false}
             questStatus={questStatus}
+            uiMode={uiMode}
           />
 
           <div className="step-nav compact">

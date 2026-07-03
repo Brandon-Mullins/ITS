@@ -96,6 +96,10 @@ export async function loadSettings(): Promise<AppSettings> {
     opacity: 0.95,
     attachToGame: false,
     smartDetect: false,
+    uiMode: 'standard',
+    accessibility: { largeText: false, highContrast: false },
+    demoMode: false,
+    tutorialComplete: false,
   };
 
   if (isElectron()) {

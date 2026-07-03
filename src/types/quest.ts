@@ -29,13 +29,17 @@ export interface QuestStep {
   text: string;
   order: number;
   travelHints: TravelHint[];
+  travelRoutes?: import('./quest-data').TravelRoute[];
   fastestRoutes?: string[];
   stepItems: string[];
   recommendedItems?: string[];
   dialogueChoices: string[];
   combatWarnings: string[];
+  puzzleHints?: string[];
+  areaWarning?: string;
   location?: string;
   npc?: string;
+  object?: string;
   completionChecks?: import('./quest-data').QuestCompletionChecks;
   markers?: import('./quest-data').QuestMarkers;
 }
@@ -48,6 +52,7 @@ export interface QuestGuide {
   questId?: string;
   rewards?: string[];
   unlocks?: string[];
+  itemBrain?: import('./quest-data').ItemBrain;
 }
 
 export interface QuestIndexEntry {
@@ -75,6 +80,11 @@ export interface AppSettings {
   smartDetect: boolean;
   lastQuest?: string;
   playerRsn?: string;
+  uiMode?: 'newbie' | 'veteran' | 'standard';
+  accessibility?: { largeText: boolean; highContrast: boolean };
+  demoMode?: boolean;
+  tutorialComplete?: boolean;
+  selectedGoal?: string;
 }
 
 export interface GameWindowInfo {

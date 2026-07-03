@@ -1,5 +1,6 @@
 import type { StructuredQuestDefinition } from '../../types/quest-data';
 import { questStep } from './helpers';
+import { ROUTES } from './routes';
 
 const quest: StructuredQuestDefinition = {
   id: 'meet-naressa-senntisten',
@@ -8,26 +9,24 @@ const quest: StructuredQuestDefinition = {
   members: true,
   length: 'Short',
   isMiniquest: true,
-  requirements: [
-    'Partial completion of City of Senntisten',
-    'Archaeology level 58',
-  ],
+  requirements: ['Partial completion of City of Senntisten', 'Archaeology level 58'],
   skillRequirements: [{ skill: 'Archaeology', level: 58 }],
   requiredItems: [],
   recommendedItems: ['Archaeology journal', 'Food'],
   enemies: [],
   rewards: ['Archaeology XP', 'Story progression'],
   unlocks: ['Further Senntisten storyline'],
+  itemBrain: {
+    required: [],
+    recommended: ['Archaeology journal', 'Food'],
+    geBuyable: [],
+    ironmanNotes: { 'Archaeology journal': 'Obtained from Archaeology tutorial' },
+  },
   steps: [
     questStep('naressa-step-1', 'Travel to Senntisten and find Naressa in the Archaeology dig site.', {
       location: 'Senntisten',
       npc: 'Naressa',
-      fastestRoutes: [
-        'Senntisten lodestone → enter dig site.',
-        'Archaeology journal → Senntisten Dig Site.',
-        'Varrock lodestone → run east to Senntisten.',
-        'Ring of wealth → Grand Exchange → run south-east.',
-      ],
+      travelRoutes: ROUTES.senntisten(),
       completionChecks: {
         locationContains: ['Senntisten', 'Dig Site'],
       },

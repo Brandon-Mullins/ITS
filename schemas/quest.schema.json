@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://rs3questhelper.dev/schemas/quest.schema.json",
+  "title": "RS3 Quest Helper Quest Definition",
+  "type": "object",
+  "required": ["id", "name", "pageName", "members", "length", "requirements", "skillRequirements", "requiredItems", "recommendedItems", "enemies", "rewards", "unlocks", "steps"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "name": { "type": "string", "minLength": 1 },
+    "pageName": { "type": "string", "minLength": 1 },
+    "wikiUrl": { "type": "string", "format": "uri" },
+    "members": { "type": "boolean" },
+    "length": { "type": "string" },
+    "isMiniquest": { "type": "boolean" },
+    "requirements": { "type": "array", "items": { "type": "string" } },
+    "skillRequirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["skill", "level"],
+        "properties": {
+          "skill": { "type": "string" },
+          "level": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "requiredItems": { "type": "array", "items": { "type": "string" } },
+    "recommendedItems": { "type": "array", "items": { "type": "string" } },
+    "enemies": { "type": "array", "items": { "type": "string" } },
+    "rewards": { "type": "array", "items": { "type": "string" } },
+    "unlocks": { "type": "array", "items": { "type": "string" } },
+    "itemBrain": { "$ref": "#/definitions/itemBrain" },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/step" }
+    }
+  },
+  "definitions": {
+    "itemBrain": {
+      "type": "object",
+      "properties": {
+        "required": { "type": "array", "items": { "type": "string" } },
+        "recommended": { "type": "array", "items": { "type": "string" } },
+        "obtainableDuring": { "type": "array", "items": { "type": "string" } },
+        "consumed": { "type": "array", "items": { "type": "string" } },
+        "kept": { "type": "array", "items": { "type": "string" } },
+        "geBuyable": { "type": "array", "items": { "type": "string" } },
+        "ironmanNotes": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "travelRoute": {
+      "type": "object",
+      "required": ["type", "label", "description"],
+      "properties": {
+        "type": { "enum": ["fastest", "cheapest", "ironman", "no-teleport"] },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "requiredUnlocks": { "type": "array", "items": { "type": "string" } },
+        "membersOnly": { "type": "boolean" }
+      }
+    },
+    "completionChecks": {
+      "type": "object",
+      "properties": {
+        "chatContains": { "type": "array", "items": { "type": "string" } },
+        "questJournalContains": { "type": "array", "items": { "type": "string" } },
+        "inventoryContains": { "type": "array", "items": { "type": "string" } },
+        "locationContains": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "markers": {
+      "type": "object",
+      "properties": {
+        "npc": { "type": ["string", "null"] },
+        "object": { "type": ["string", "null"] },
+        "area": { "type": ["string", "null"] },
+        "tile": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["x", "y"],
+              "properties": {
+                "x": { "type": "integer" },
+                "y": { "type": "integer" },
+                "plane": { "type": "integer" }
+              }
+            }
+          ]
+        },
+        "minimapHint": { "type": "string" },
+        "worldMapHint": { "type": "string" }
+      }
+    },
+    "step": {
+      "type": "object",
+      "required": ["id", "instruction", "requiredItems", "dialogueOptions", "completionChecks", "markers"],
+      "properties": {
+        "id": { "type": "string" },
+        "instruction": { "type": "string", "minLength": 8 },
+        "location": { "type": "string" },
+        "npc": { "type": "string" },
+        "object": { "type": "string" },
+        "requiredItems": { "type": "array", "items": { "type": "string" } },
+        "recommendedItems": { "type": "array", "items": { "type": "string" } },
+        "dialogueOptions": { "type": "array", "items": { "type": "string" } },
+        "fastestRoutes": { "type": "array", "items": { "type": "string" } },
+        "travelRoutes": { "type": "array", "items": { "$ref": "#/definitions/travelRoute" }, "minItems": 1 },
+        "combatWarnings": { "type": "array", "items": { "type": "string" } },
+        "puzzleHints": { "type": "array", "items": { "type": "string" } },
+        "areaWarning": { "type": "string" },
+        "completionChecks": { "$ref": "#/definitions/completionChecks" },
+        "markers": { "$ref": "#/definitions/markers" }
+      }
+    }
+  }
+}

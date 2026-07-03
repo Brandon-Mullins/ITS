@@ -1,5 +1,15 @@
 import type { QuestSkillRequirement } from './quest';
 
+export type RouteType = 'fastest' | 'cheapest' | 'ironman' | 'no-teleport';
+
+export interface TravelRoute {
+  type: RouteType;
+  label: string;
+  description: string;
+  requiredUnlocks?: string[];
+  membersOnly?: boolean;
+}
+
 /** OCR / API completion signals for a single step (no automation). */
 export interface QuestCompletionChecks {
   chatContains?: string[];
@@ -8,7 +18,6 @@ export interface QuestCompletionChecks {
   locationContains?: string[];
 }
 
-/** Map marker placeholders for native Jagex plugin API. */
 export interface QuestTileMarker {
   x: number;
   y: number;
@@ -20,24 +29,38 @@ export interface QuestMarkers {
   object?: string | null;
   tile?: QuestTileMarker | null;
   area?: string | null;
+  minimapHint?: string;
+  worldMapHint?: string;
 }
 
-/** Curated step — OSRS Quest Helper style. */
+export interface ItemBrain {
+  required?: string[];
+  recommended?: string[];
+  obtainableDuring?: string[];
+  consumed?: string[];
+  kept?: string[];
+  geBuyable?: string[];
+  ironmanNotes?: Record<string, string>;
+}
+
 export interface StructuredQuestStep {
   id: string;
   instruction: string;
   location?: string;
   npc?: string;
+  object?: string;
   requiredItems: string[];
   recommendedItems?: string[];
   dialogueOptions: string[];
   fastestRoutes: string[];
+  travelRoutes?: TravelRoute[];
   combatWarnings?: string[];
+  puzzleHints?: string[];
+  areaWarning?: string;
   completionChecks: QuestCompletionChecks;
   markers: QuestMarkers;
 }
 
-/** Hand-authored quest definition for the plugin contest prototype. */
 export interface StructuredQuestDefinition {
   id: string;
   name: string;
@@ -53,5 +76,6 @@ export interface StructuredQuestDefinition {
   enemies: string[];
   rewards: string[];
   unlocks: string[];
+  itemBrain?: ItemBrain;
   steps: StructuredQuestStep[];
 }

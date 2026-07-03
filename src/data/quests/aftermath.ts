@@ -1,5 +1,6 @@
 import type { StructuredQuestDefinition } from '../../types/quest-data';
 import { questStep } from './helpers';
+import { ROUTES } from './routes';
 
 const quest: StructuredQuestDefinition = {
   id: 'aftermath',
@@ -17,15 +18,12 @@ const quest: StructuredQuestDefinition = {
   enemies: ['Quest combat encounters'],
   rewards: ['Quest points', 'XP', 'Story conclusion'],
   unlocks: ['Post-Senntisten world state'],
+  itemBrain: { required: [], recommended: ['Food', 'Archaeology journal'], geBuyable: ['Food'] },
   steps: [
     questStep('aftermath-step-1', 'Return to Senntisten and speak with the quest contact after Twilight of the Gods.', {
       location: 'Senntisten',
       npc: 'Azzanadra',
-      fastestRoutes: [
-        'Senntisten lodestone → Cathedral.',
-        'Archaeology journal → Senntisten Dig Site.',
-        'Varrock lodestone → run east.',
-      ],
+      travelRoutes: ROUTES.senntisten(),
       completionChecks: {
         chatContains: ['Azzanadra'],
         locationContains: ['Senntisten'],

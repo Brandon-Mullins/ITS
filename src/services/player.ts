@@ -1,4 +1,5 @@
 import type { PlayerQuestData } from '../utils/quest-match';
+import { DEMO_RSN, DEMO_QUEST_STATES } from '../plugin-api/mock/demo-data';
 
 const QUESTS_URL = 'https://apps.runescape.com/runemetrics/quests?user=';
 const PROFILE_URL = 'https://apps.runescape.com/runemetrics/profile?user=';
@@ -25,10 +26,28 @@ interface RunemetricsProfileResponse {
 }
 
 export async function fetchPlayerQuests(rsn: string): Promise<PlayerQuestData> {
-  const encoded = encodeURIComponent(rsn.trim());
+  const trimmed = rsn.trim();
+
+  if (trimmed.toLowerCase() === DEMO_RSN.toLowerCase()) {
+    return {
+      rsn: DEMO_RSN,
+      quests: DEMO_QUEST_STATES.map((q) => ({
+        title: q.name,
+        status: q.status,
+        difficulty: 2,
+        members: true,
+        questPoints: 1,
+        userEligible: q.eligible,
+      })),
+      fetchedAt: new Date().toISOString(),
+      questsComplete: 2,
+    };
+  }
+
+  const encoded = encodeURIComponent(trimmed);
 
   if (window.electronAPI?.fetchPlayerQuests) {
-    return window.electronAPI.fetchPlayerQuests(rsn.trim());
+    return window.electronAPI.fetchPlayerQuests(trimmed);
   }
 
   // Browser fallback (may hit CORS)

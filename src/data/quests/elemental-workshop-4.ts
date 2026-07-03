@@ -1,5 +1,6 @@
 import type { StructuredQuestDefinition } from '../../types/quest-data';
 import { questStep } from './helpers';
+import { ROUTES } from './routes';
 
 const quest: StructuredQuestDefinition = {
   id: 'elemental-workshop-4',
@@ -20,11 +21,7 @@ const quest: StructuredQuestDefinition = {
   steps: [
     questStep('ew4-step-1', 'Enter the Elemental Workshop beneath Seers\' Village.', {
       location: 'Elemental Workshop',
-      fastestRoutes: [
-        "Seers' Village lodestone → workshop south of bank.",
-        'Camelot Teleport → run south.',
-        'Fairy ring C·K·S → Catherby → run west.',
-      ],
+      travelRoutes: ROUTES.elementalWorkshop(),
       completionChecks: {
         locationContains: ['Elemental Workshop'],
       },

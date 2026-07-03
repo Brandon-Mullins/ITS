@@ -3,12 +3,15 @@ import type { QuestIndexEntry } from '../types/quest';
 import type { PlayerQuestData } from '../utils/quest-match';
 import { buildPlayerQuestMap, mapPlayerStatus, type QuestPlannerStatus } from '../utils/quest-match';
 import { fetchPlayerQuests } from '../services/player';
+import { buildPlannerSummary } from '../services/quest-planner';
 import { getCuratedQuest } from '../data/quests';
+import { DEMO_RSN } from '../plugin-api';
 
 interface QuestSearchProps {
   quests: QuestIndexEntry[];
   playerRsn?: string;
   onPlayerRsnChange: (rsn: string) => void;
+  onPlayerData?: (data: PlayerQuestData) => void;
   onSelect: (pageName: string) => void;
   onRefreshIndex: () => void;
 }
@@ -28,6 +31,7 @@ export default function QuestSearch({
   quests,
   playerRsn: savedRsn,
   onPlayerRsnChange,
+  onPlayerData,
   onSelect,
   onRefreshIndex,
 }: QuestSearchProps) {
@@ -42,6 +46,11 @@ export default function QuestSearch({
   const playerMap = useMemo(() => {
     if (!playerData) return null;
     return buildPlayerQuestMap(playerData, quests);
+  }, [playerData, quests]);
+
+  const planner = useMemo(() => {
+    if (!playerData) return null;
+    return buildPlannerSummary(playerData, quests);
   }, [playerData, quests]);
 
   const stats = useMemo(() => {
@@ -103,6 +112,7 @@ export default function QuestSearch({
     try {
       const data = await fetchPlayerQuests(rsn);
       setPlayerData(data);
+      onPlayerData?.(data);
       onPlayerRsnChange(rsn);
     } catch (e) {
       setPlayerError(e instanceof Error ? e.message : 'Failed to load player data');
@@ -139,6 +149,14 @@ export default function QuestSearch({
           onChange={(e) => setRsnInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && loadPlayer()}
         />
+        <button
+          type="button"
+          className="btn-ghost btn-sm demo-btn"
+          onClick={() => setRsnInput(DEMO_RSN)}
+          title="Load demo player data"
+        >
+          Demo
+        </button>
         <button
           type="button"
           className="btn-primary btn-load-rsn"
@@ -191,6 +209,22 @@ export default function QuestSearch({
               Locked: {stats.locked}
             </button>
           </div>
+        </div>
+      )}
+
+      {planner && planner.recommendations.length > 0 && (
+        <div className="planner-recs">
+          <h3 className="planner-title">Recommended next</h3>
+          <ul className="rec-list">
+            {planner.recommendations.map((rec) => (
+              <li key={rec.pageName}>
+                <button type="button" className="rec-btn" onClick={() => onSelect(rec.pageName)}>
+                  <span>{rec.name}</span>
+                  <span className="rec-reason">{rec.reason}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

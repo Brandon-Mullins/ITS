@@ -10,9 +10,21 @@ export interface QuestGuideWithSource extends QuestGuide {
   questId?: string;
   rewards?: string[];
   unlocks?: string[];
+  itemBrain?: StructuredQuestDefinition['itemBrain'];
 }
 
 function routesToTravelHints(step: StructuredQuestDefinition['steps'][0]): TravelHint[] {
+  const routes = step.travelRoutes ?? [];
+  if (routes.length > 0) {
+    return [{
+      location: step.location ?? 'Destination',
+      methods: routes.map((r) => ({
+        name: r.label,
+        detail: r.description,
+        members: r.membersOnly,
+      })),
+    }];
+  }
   if (step.fastestRoutes.length === 0) return [];
   const location = step.location ?? 'Destination';
   const methods = step.fastestRoutes.map((route) => {
@@ -32,13 +44,17 @@ export function curatedToGuide(def: StructuredQuestDefinition): QuestGuideWithSo
     text: s.instruction,
     order: i,
     travelHints: routesToTravelHints(s),
+    travelRoutes: s.travelRoutes,
     fastestRoutes: s.fastestRoutes,
     stepItems: s.requiredItems,
     recommendedItems: s.recommendedItems,
     dialogueChoices: s.dialogueOptions,
     combatWarnings: s.combatWarnings ?? [],
+    puzzleHints: s.puzzleHints,
+    areaWarning: s.areaWarning,
     location: s.location,
     npc: s.npc,
+    object: s.object,
     completionChecks: s.completionChecks,
     markers: s.markers,
   }));
@@ -64,6 +80,7 @@ export function curatedToGuide(def: StructuredQuestDefinition): QuestGuideWithSo
     questId: def.id,
     rewards: def.rewards,
     unlocks: def.unlocks,
+    itemBrain: def.itemBrain,
   };
 }
 
