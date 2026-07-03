@@ -10,7 +10,7 @@
     "build": "tsc && vite build && tsc -p tsconfig.electron.json",
     "preview": "vite preview",
     "electron:dev": "vite",
-    "electron:fix": "node node_modules/electron/install.js",
+    "electron:fix": "powershell -ExecutionPolicy Bypass -File fix-electron.ps1",
     "electron:build": "npm run build && electron-builder --win",
     "seed": "tsx scripts/seed-quests.ts",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit"

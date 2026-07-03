@@ -1,39 +1,73 @@
-# Fix Electron binary download on Windows
+# Manually download Electron binary when npm install.js fails (common on Windows)
 $ErrorActionPreference = "Stop"
 
-Write-Host "Fixing Electron installation..." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  RS3 Quest Helper - Electron Fix" -ForegroundColor Yellow
+Write-Host ""
 
-$projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location $projectRoot
+Set-Location $PSScriptRoot
 
-if (Test-Path "node_modules\electron") {
-    Remove-Item "node_modules\electron" -Recurse -Force
-    Write-Host "Removed broken electron folder." -ForegroundColor Cyan
-}
+# Read installed electron version
+$electronPkg = Get-Content "node_modules\electron\package.json" | ConvertFrom-Json
+$version = $electronPkg.version
+Write-Host "Electron version: $version" -ForegroundColor Cyan
 
-Write-Host "Re-downloading Electron (this may take a minute)..." -ForegroundColor Cyan
-npm install electron --force
+$distPath = Join-Path $PSScriptRoot "node_modules\electron\dist"
+$zipPath = Join-Path $env:TEMP "electron-v$version-win32-x64.zip"
+$zipName = "electron-v$version-win32-x64.zip"
 
-Write-Host "Running Electron install script..." -ForegroundColor Cyan
-node node_modules/electron/install.js
+$urls = @(
+    "https://github.com/electron/electron/releases/download/v$version/$zipName",
+    "https://npmmirror.com/mirrors/electron/v$version/$zipName"
+)
 
-if (-not (Test-Path "node_modules\electron\dist\electron.exe")) {
-    Write-Host ""
-    Write-Host "Electron still missing. Trying mirror..." -ForegroundColor Yellow
-    $env:ELECTRON_MIRROR = "https://npmmirror.com/mirrors/electron/"
-    Remove-Item "node_modules\electron" -Recurse -Force -ErrorAction SilentlyContinue
+# Ensure npm package exists (without deleting the whole folder)
+if (-not (Test-Path "node_modules\electron\package.json")) {
+    Write-Host "Installing electron npm package..." -ForegroundColor Cyan
     npm install electron --force
-    node node_modules/electron/install.js
 }
 
-if (Test-Path "node_modules\electron\dist\electron.exe") {
+if (Test-Path $distPath) {
+    Remove-Item $distPath -Recurse -Force
+}
+New-Item -ItemType Directory -Force -Path $distPath | Out-Null
+
+$downloaded = $false
+foreach ($url in $urls) {
+    Write-Host "Downloading from $url ..." -ForegroundColor Cyan
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $url -OutFile $zipPath -UseBasicParsing
+        $downloaded = $true
+        Write-Host "Download complete." -ForegroundColor Green
+        break
+    } catch {
+        Write-Host "Failed: $_" -ForegroundColor Red
+    }
+}
+
+if (-not $downloaded) {
     Write-Host ""
-    Write-Host "[OK] Electron installed successfully!" -ForegroundColor Green
-    Write-Host "Now run: npm run electron:dev" -ForegroundColor Green
+    Write-Host "[ERROR] Could not download Electron." -ForegroundColor Red
+    Write-Host "Try: temporarily disable antivirus, or use a different network."
+    Read-Host "Press Enter to exit"
+    exit 1
+}
+
+Write-Host "Extracting to $distPath ..." -ForegroundColor Cyan
+Expand-Archive -Path $zipPath -DestinationPath $distPath -Force
+Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+
+$exePath = Join-Path $distPath "electron.exe"
+if (Test-Path $exePath) {
+    Write-Host ""
+    Write-Host "[OK] Electron installed at $exePath" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Now run:  npm run electron:dev" -ForegroundColor Yellow
 } else {
     Write-Host ""
-    Write-Host "[ERROR] Electron binary still missing." -ForegroundColor Red
-    Write-Host "Try temporarily disabling antivirus, then run this script again."
+    Write-Host "[ERROR] electron.exe not found after extract." -ForegroundColor Red
+    Get-ChildItem $distPath
     Read-Host "Press Enter to exit"
     exit 1
 }
