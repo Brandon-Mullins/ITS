@@ -39,6 +39,7 @@ const api = {
     ipcRenderer.on('screen-reader:result', handler);
     return () => ipcRenderer.removeListener('screen-reader:result', handler);
   },
+  fetchPlayerQuests: (rsn: string) => ipcRenderer.invoke('player:fetch-quests', rsn),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

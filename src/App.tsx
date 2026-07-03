@@ -189,6 +189,8 @@ export default function App() {
         {view === 'search' ? (
           <QuestSearch
             quests={sortedQuests}
+            playerRsn={settings.playerRsn}
+            onPlayerRsnChange={(rsn) => handleSettingsChange({ playerRsn: rsn })}
             onSelect={(pageName) => loadGuide(pageName)}
             onRefreshIndex={handleRefreshIndex}
           />

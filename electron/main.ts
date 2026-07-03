@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { GameWindowTracker, findGameWindow } from './game-window';
 import { scanGameScreen, disposeScreenReader, extractStepKeywords } from './screen-reader';
+import { fetchPlayerQuestsFromApi } from './player-api';
 import type { ScreenReaderConfig } from './screen-reader';
 
 const isDev = !app.isPackaged;
@@ -200,4 +201,8 @@ ipcMain.handle('screen-reader:start', async (_event, config: ScreenReaderConfig)
 ipcMain.handle('screen-reader:stop', async () => {
   stopScreenReader();
   return true;
+});
+
+ipcMain.handle('player:fetch-quests', async (_event, rsn: string) => {
+  return fetchPlayerQuestsFromApi(rsn);
 });

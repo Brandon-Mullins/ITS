@@ -53,6 +53,7 @@ export interface AppSettings {
   attachToGame: boolean;
   smartDetect: boolean;
   lastQuest?: string;
+  playerRsn?: string;
 }
 
 export interface GameWindowInfo {
@@ -93,6 +94,7 @@ export interface ElectronAPI {
   screenReaderStart: (config: ScreenReaderConfig) => Promise<boolean>;
   screenReaderStop: () => Promise<boolean>;
   onScreenReaderResult: (callback: (result: ScreenReaderResult) => void) => () => void;
+  fetchPlayerQuests: (rsn: string) => Promise<import('../utils/quest-match').PlayerQuestData>;
 }
 
 declare global {

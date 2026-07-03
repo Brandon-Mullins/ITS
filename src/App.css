@@ -328,7 +328,132 @@
   text-align: center;
   font-size: 11px;
   color: var(--text-muted);
+  grid-column: 1 / -1;
 }
+
+/* Player lookup */
+.player-lookup {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.rsn-input {
+  flex: 1;
+}
+
+.btn-load-rsn {
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+
+.player-error {
+  font-size: 11px;
+  color: #f88;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.player-summary {
+  margin-bottom: 10px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.player-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.stat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.stat-chip {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.stat-chip.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.chip-todo.active { border-color: #6ab0ff; color: #6ab0ff; background: rgba(106, 176, 255, 0.12); }
+.chip-available.active { border-color: #8fd87a; color: #8fd87a; background: rgba(90, 158, 74, 0.12); }
+.chip-progress.active { border-color: var(--accent); }
+.chip-done.active { border-color: #8fd87a; color: #8fd87a; }
+.chip-locked.active { border-color: #888; color: #aaa; }
+
+/* Quest cards with status */
+.quest-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.quest-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.quest-card:hover {
+  background: var(--accent-dim);
+}
+
+.quest-status-available {
+  border-left: 3px solid #8fd87a;
+}
+
+.quest-status-in_progress {
+  border-left: 3px solid var(--accent);
+}
+
+.quest-status-completed {
+  border-left: 3px solid #5a7a5a;
+  opacity: 0.7;
+}
+
+.quest-status-locked {
+  border-left: 3px solid #666;
+  opacity: 0.65;
+}
+
+.status-pill {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.pill-available { background: rgba(90, 158, 74, 0.25); color: #8fd87a; }
+.pill-in_progress { background: rgba(201, 162, 39, 0.25); color: var(--accent); }
+.pill-completed { background: rgba(90, 120, 90, 0.25); color: #7a9a7a; }
+.pill-locked { background: rgba(120, 120, 120, 0.2); color: #999; }
+.pill-unknown { background: var(--accent-dim); color: var(--text-muted); }
 
 /* Quest guide */
 .guide-header {

@@ -34,8 +34,8 @@ interface BucketQuestRow {
   page_name: string;
   json: string;
   requirements?: string | null;
-  requirement_skill?: string | null;
-  requirement_skill_level?: string | null;
+  requirement_skill?: string | string[] | null;
+  requirement_skill_level?: string | string[] | null;
   official_length?: string | null;
 }
 
@@ -128,16 +128,47 @@ function parseRequirementsFromJson(data: QuestJsonData): string[] {
     .filter((line) => line.length > 0);
 }
 
+function toStringList(value: string | string[] | null | undefined): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  return value.split(',').map((v) => v.trim()).filter(Boolean);
+}
+
 function parseSkillRequirements(
-  skills: string | null | undefined,
-  levels: string | null | undefined,
+  skills: string | string[] | null | undefined,
+  levels: string | string[] | null | undefined,
 ): { skill: string; level: number }[] {
-  if (!skills || !levels) return [];
-  const skillList = skills.split(',').map((s) => s.trim());
-  const levelList = levels.split(',').map((l) => parseInt(l.trim(), 10));
+  const levelEntries = toStringList(levels);
+  const results: { skill: string; level: number }[] = [];
+
+  for (const entry of levelEntries) {
+    const colonMatch = entry.match(/^(.+?):\s*(\d+)$/);
+    if (colonMatch) {
+      const skill = colonMatch[1].trim();
+      const level = parseInt(colonMatch[2], 10);
+      if (skill.toLowerCase() !== 'quest points' && level > 0) {
+        results.push({ skill, level });
+      }
+      continue;
+    }
+
+    const level = parseInt(entry, 10);
+    if (!Number.isNaN(level) && level > 0) {
+      const skillList = toStringList(skills);
+      const skill = skillList[results.length];
+      if (skill && skill.toLowerCase() !== 'quest points') {
+        results.push({ skill, level });
+      }
+    }
+  }
+
+  if (results.length > 0) return results;
+
+  const skillList = toStringList(skills);
+  const numericLevels = levelEntries.map((l) => parseInt(l, 10));
   return skillList
-    .map((skill, i) => ({ skill, level: levelList[i] ?? 0 }))
-    .filter((r) => r.skill && r.level > 0);
+    .map((skill, i) => ({ skill, level: numericLevels[i] ?? 0 }))
+    .filter((r) => r.skill && r.level > 0 && r.skill.toLowerCase() !== 'quest points');
 }
 
 function parseBucketRow(row: BucketQuestRow): import('../types/quest').QuestMetadata {
