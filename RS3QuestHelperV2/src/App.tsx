@@ -277,6 +277,7 @@ export default function App() {
               guide={guide}
               progress={progress}
               loading={guideLoading}
+              playerData={playerData}
               uiMode={settings.uiMode}
               isAttached={isAttached}
               highlightSettings={settings}

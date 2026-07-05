@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { QuestGuide, QuestProgress, ScreenReaderResult, AppSettings } from '../types/quest';
-import type { TravelRoute } from '../types/quest-data';
+import type { PlayerQuestData } from '../utils/quest-match';
 import { openWikiUrl } from '../services/storage';
 import { useSmartDetect } from '../hooks/useSmartDetect';
-import RoutePanel from './RoutePanel';
+import { resolveTravelBrain } from '../services/travel-brain';
 import MarkerPlaceholders from './MarkerPlaceholders';
+import TravelBrainPanel from './TravelBrainPanel';
+import NpcInfoCard from './NpcInfoCard';
+import ItemDetailCard from './ItemDetailCard';
 import ItemShoppingList from './ItemShoppingList';
 import ClickTargetsPanel from './ClickTargetsPanel';
 import UseOnHelper from './UseOnHelper';
@@ -13,7 +16,6 @@ import StepConfidencePanel from './StepConfidencePanel';
 import MistakeWarningsPanel from './MistakeWarningsPanel';
 import StepDebugPanel from './StepDebugPanel';
 import HighlightSettingsPanel from './HighlightSettingsPanel';
-import { extractItemName, itemGeSearchUrl } from '../utils/items';
 import { buildClickTargetCards, inventoryHighlightItems, getClickTargets } from '../utils/click-targets';
 import { listIncludesItem } from '../utils/item-match';
 import {
@@ -28,6 +30,7 @@ import { useGameHighlights } from '../hooks/useGameHighlights';
 interface QuestHelperPanelProps {
   guide: QuestGuide;
   progress: QuestProgress;
+  playerData?: PlayerQuestData | null;
   uiMode?: 'newbie' | 'veteran' | 'standard';
   onBack: () => void;
   onRefresh: () => void;
@@ -44,37 +47,10 @@ interface QuestHelperPanelProps {
   calibrating?: boolean;
 }
 
-type ItemState = 'inventory' | 'bank' | 'ge' | 'pending';
-
-const ROUTE_TABS: TravelRoute['type'][] = ['fastest', 'cheapest', 'ironman', 'no-teleport'];
-const ROUTE_TAB_LABELS: Record<TravelRoute['type'], string> = {
-  fastest: '⚡ Fastest',
-  cheapest: '💰 Cheapest',
-  ironman: '🛡 Ironman',
-  'no-teleport': '🚶 Walk',
-};
-
-function itemState(item: string, inv: string[], bank: string[], ge: string[]): ItemState {
-  if (listIncludesItem(inv, item)) return 'inventory';
-  if (listIncludesItem(bank, item)) return 'bank';
-  if (listIncludesItem(ge, item)) return 'ge';
-  return 'pending';
-}
-
-function itemAuraClass(
-  item: string,
-  inv: string[],
-  bank: string[],
-  isClickTarget: boolean,
-): string {
-  if (isClickTarget && listIncludesItem(inv, item)) return 'aura-blue';
-  if (listIncludesItem(inv, item) || listIncludesItem(bank, item)) return 'aura-green';
-  return 'aura-red';
-}
-
 export default function QuestHelperPanel({
   guide,
   progress,
+  playerData = null,
   uiMode = 'standard',
   onBack,
   onRefresh,
@@ -97,9 +73,10 @@ export default function QuestHelperPanel({
   const bank = progress.bankItems ?? [];
   const ge = progress.needGeItems ?? [];
 
-  const routes = step.travelRoutes ?? [];
-  const [routeTab, setRouteTab] = useState<TravelRoute['type']>('fastest');
-  const activeRoute = routes.find((r) => r.type === routeTab) ?? routes[0];
+  const travelBrain = useMemo(
+    () => resolveTravelBrain(step, playerData, highlightSettings),
+    [step, playerData, highlightSettings],
+  );
 
   const goTo = (i: number) => onProgressChange({ currentStepIndex: i });
 
@@ -122,7 +99,6 @@ export default function QuestHelperPanel({
   const debugInfo = buildStepDebugInfo(guide, progress, scanResult);
   const dialogueNext = getDialogueNextIndex(step.dialogueChoices ?? [], scanResult?.ocrSnippet ?? '');
   const readyCount = stepItems.filter((i) => listIncludesItem(inv, i)).length;
-  const hasRoutes = routes.length > 0 || (step.fastestRoutes?.length ?? 0) > 0;
 
   return (
     <div className="qh-panel">
@@ -180,12 +156,10 @@ export default function QuestHelperPanel({
                 <span className="qh-step-done-badge">✓ Complete</span>
               )}
             </div>
-            {(step.location || step.npc || step.object) && (
+            {step.npc && <NpcInfoCard npcName={step.npc} />}
+            {(step.location || step.object) && !step.npc && (
               <div className="qh-location">
                 {step.location && <span className="qh-loc-pin aura-blue">📍 {step.location}</span>}
-                {step.npc && (
-                  <span className="qh-loc-npc aura-blue">👤 {step.npc}</span>
-                )}
                 {step.object && (
                   <span className="qh-loc-obj aura-blue">⚙ {step.object}</span>
                 )}
@@ -204,36 +178,7 @@ export default function QuestHelperPanel({
           </div>
 
           <div className="qh-section qh-routes-section">
-            <div className="qh-section-label route-label">Travel</div>
-            {routes.length > 1 && (
-              <div className="qh-route-tabs" role="tablist">
-                {ROUTE_TABS.filter((t) => routes.some((r) => r.type === t)).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    role="tab"
-                    aria-selected={routeTab === tab}
-                    className={`qh-route-tab ${routeTab === tab ? 'active' : ''}`}
-                    onClick={() => setRouteTab(tab)}
-                  >
-                    {ROUTE_TAB_LABELS[tab]}
-                  </button>
-                ))}
-              </div>
-            )}
-            {activeRoute ? (
-              <div className="qh-route-card">
-                <span className="qh-route-name">{activeRoute.label}</span>
-                <p className="qh-route-desc">{activeRoute.description}</p>
-                {activeRoute.requiredUnlocks && activeRoute.requiredUnlocks.length > 0 && uiMode !== 'veteran' && (
-                  <span className="qh-route-unlocks">Needs: {activeRoute.requiredUnlocks.join(', ')}</span>
-                )}
-              </div>
-            ) : hasRoutes ? (
-              <RoutePanel routes={step.travelRoutes} fastestRoutes={step.fastestRoutes} uiMode={uiMode} />
-            ) : (
-              <p className="qh-route-fallback">Walk from nearest lodestone or use jewellery teleports.</p>
-            )}
+            <TravelBrainPanel travel={travelBrain} uiMode={uiMode} />
           </div>
 
           <MarkerPlaceholders step={step} />
@@ -246,25 +191,19 @@ export default function QuestHelperPanel({
                   {readyCount}/{stepItems.length} ready
                 </span>
               </div>
-              <ul className="qh-item-list">
+              <ul className="qh-item-list tb-item-list">
                 {stepItems.map((item) => {
-                  const st = itemState(item, inv, bank, ge);
                   const isClickTarget = clickTargetItems.some((t) => listIncludesItem([t], item));
-                  const aura = itemAuraClass(item, inv, bank, isClickTarget);
                   return (
-                    <li key={item} className={`qh-item qh-item-${st} ${aura}`}>
-                      <span className="qh-item-icon" aria-hidden>
-                        {st === 'inventory' ? '✓' : st === 'bank' ? '◉' : '○'}
-                      </span>
-                      <span className="qh-item-name">{extractItemName(item)}</span>
-                      <button
-                        type="button"
-                        className={`qh-item-action ${st}`}
-                        onClick={() => st !== 'inventory' && openWikiUrl(itemGeSearchUrl(item))}
-                      >
-                        {st === 'inventory' ? 'Ready' : st === 'bank' ? 'In bank' : st === 'ge' ? 'Buy GE' : 'Get item'}
-                      </button>
-                    </li>
+                    <ItemDetailCard
+                      key={item}
+                      item={item}
+                      inv={inv}
+                      bank={bank}
+                      ge={ge}
+                      itemBrain={guide.itemBrain}
+                      isClickTarget={isClickTarget}
+                    />
                   );
                 })}
               </ul>

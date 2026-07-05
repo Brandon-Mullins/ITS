@@ -1,4 +1,5 @@
 import type { QuestGuide, QuestProgress } from '../types/quest';
+import type { PlayerQuestData } from '../utils/quest-match';
 import { QuestHelperPanelWithDetect } from './QuestHelperPanel';
 
 interface QuestGuideViewProps {
@@ -6,6 +7,7 @@ interface QuestGuideViewProps {
   progress: QuestProgress | null;
   loading: boolean;
   questStatus?: string | null;
+  playerData?: PlayerQuestData | null;
   uiMode?: 'newbie' | 'veteran' | 'standard';
   isAttached?: boolean;
   highlightSettings?: import('../types/quest').AppSettings;
@@ -20,6 +22,7 @@ export default function QuestGuideView({
   guide,
   progress,
   loading,
+  playerData = null,
   uiMode = 'standard',
   isAttached,
   highlightSettings,
@@ -42,6 +45,7 @@ export default function QuestGuideView({
     <QuestHelperPanelWithDetect
       guide={guide}
       progress={progress}
+      playerData={playerData}
       uiMode={uiMode}
       isAttached={isAttached}
       onBack={onBack}
