@@ -1,0 +1,67 @@
+:root {
+  --bg-primary: rgba(18, 16, 14, 0.92);
+  --bg-secondary: rgba(28, 24, 20, 0.95);
+  --bg-elevated: rgba(40, 34, 28, 0.98);
+  --border: rgba(180, 140, 60, 0.25);
+  --border-strong: rgba(200, 160, 70, 0.45);
+  --text-primary: #f0e6d0;
+  --text-secondary: #b8a88a;
+  --text-muted: #7a6e5a;
+  --accent: #c9a227;
+  --accent-hover: #e0b830;
+  --accent-dim: rgba(201, 162, 39, 0.15);
+  --success: #5a9e4a;
+  --error: #c44;
+  --radius: 8px;
+  --radius-sm: 4px;
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--text-primary);
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input, label {
+  font-family: inherit;
+}
+
+a {
+  color: var(--accent);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
