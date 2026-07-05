@@ -16,7 +16,7 @@ export default function UseOnHelper({ pairs }: UseOnHelperProps) {
         </div>
       ))}
       <p className="use-on-note">
-        Blue aura on inventory item + target object/NPC in-game. Right-click → Use.
+        Helper panel only — no in-game screen rectangles in v0.6.4-HIGHLIGHT-FIX. Right-click → Use in game.
       </p>
     </div>
   );

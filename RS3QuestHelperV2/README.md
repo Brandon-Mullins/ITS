@@ -1,7 +1,7 @@
 # RS3 Quest Helper V2 — ONLY use this folder
 
 **Path:** `C:\Users\bmull\RS3QuestHelperV2`  
-**Version:** `0.6.4-HIGHLIGHT-FIX`  
+**Version:** `v0.6.4-HIGHLIGHT-FIX`  
 **Port:** `5174` (NOT 5173)
 
 Do **NOT** use `C:\Users\bmull\ITS` — that is the old project.
@@ -27,10 +27,10 @@ npm run electron:fix
 
 You MUST see all of these:
 
-1. Green banner: `✓ RS3 Quest Helper V2 — 0.6.4-HIGHLIGHT-FIX`
-2. Title bar badge: `0.6.4-HIGHLIGHT-FIX`
-3. Footer: `0.6.4-HIGHLIGHT-FIX`
-4. Browser console (F12): `RUNNING RS3 QUEST HELPER V2 0.6.4-HIGHLIGHT-FIX`
+1. Green banner: `✓ RS3 Quest Helper V2 — v0.6.4-HIGHLIGHT-FIX`
+2. Title bar badge: `v0.6.4-HIGHLIGHT-FIX`
+3. Footer: `v0.6.4-HIGHLIGHT-FIX`
+4. Browser console (F12): `RUNNING RS3 QUEST HELPER V2 v0.6.4-HIGHLIGHT-FIX`
 
 If you see `v0.6.3`, you are in the **wrong folder**.
 

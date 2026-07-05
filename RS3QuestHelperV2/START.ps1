@@ -39,6 +39,6 @@ if (-not (Test-Path "node_modules")) { npm install }
 if (-not (Test-Path "node_modules\electron\dist\electron.exe")) { npm run electron:fix }
 
 npm run clean
-Write-Host "Look for green banner: 0.6.4-HIGHLIGHT-FIX" -ForegroundColor Green
+Write-Host "Look for green banner: v0.6.4-HIGHLIGHT-FIX" -ForegroundColor Green
 Write-Host ""
 npm run electron:dev

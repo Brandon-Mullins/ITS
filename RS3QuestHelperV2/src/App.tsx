@@ -28,7 +28,7 @@ import AttachModeHint from './components/AttachModeHint';
 import './App.css';
 
 export const V2_BUILD_ID = 'RS3QuestHelperV2';
-export const V2_VERSION = '0.6.4-HIGHLIGHT-FIX';
+export const V2_VERSION = 'v0.6.4-HIGHLIGHT-FIX';
 
 type AppView = 'search' | 'guide' | 'goals' | 'editor' | 'why';
 

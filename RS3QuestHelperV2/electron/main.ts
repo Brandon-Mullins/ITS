@@ -11,7 +11,7 @@ import { fetchPlayerQuestsFromApi } from './player-api';
 import type { ScreenReaderConfig } from './screen-reader';
 
 const isDev = !app.isPackaged;
-export const APP_VERSION = '0.6.4-HIGHLIGHT-FIX';
+export const APP_VERSION = 'v0.6.4-HIGHLIGHT-FIX';
 const DEV_PORT = 5174;
 
 let mainWindow: BrowserWindow | null = null;

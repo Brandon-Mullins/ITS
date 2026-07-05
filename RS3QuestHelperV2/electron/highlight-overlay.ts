@@ -23,7 +23,7 @@ function buildOverlayHtml(plan: HighlightRenderPlan): string {
   let yOffset = 5;
 
   const experimentalWarn = plan.experimentalWarning
-    ? `<div class="exp-warning">⚠ Experimental highlights may be inaccurate. Rectangles disabled in v0.6.4-HIGHLIGHT-FIX.</div>`
+    ? `<div class="exp-warning">Experimental highlights may be inaccurate.</div>`
     : '';
 
   const bannerEls = plan.banners.map((text) => {

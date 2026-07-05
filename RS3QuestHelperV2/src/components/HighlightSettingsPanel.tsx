@@ -32,7 +32,7 @@ export default function HighlightSettingsPanel({
 
       {isExperimental && (
         <div className="experimental-warning-banner" role="alert">
-          ⚠ Experimental highlights may be inaccurate. All blue rectangles are disabled in v0.6.4-HIGHLIGHT-FIX.
+          Experimental highlights may be inaccurate.
         </div>
       )}
 
