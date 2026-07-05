@@ -2,8 +2,10 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { GameWindowTracker, findGameWindow } from './game-window';
-import { updateGameHighlights, clearGameHighlights } from './highlight-overlay';
-import type { HighlightConfig } from './highlight-overlay';
+import { renderHighlightPlan, clearGameHighlights, syncHighlightToGame } from './highlight-overlay';
+import { buildHighlightPlan } from './highlight-engine';
+import type { HighlightConfig } from './highlight-engine';
+import { openCalibrationOverlay, resolveCalibration, closeCalibrationOverlay } from './calibration-overlay';
 import { scanGameScreen, disposeScreenReader, extractStepKeywords, resetBankScanCache } from './screen-reader';
 import { fetchPlayerQuestsFromApi } from './player-api';
 import type { ScreenReaderConfig } from './screen-reader';
@@ -216,13 +218,43 @@ ipcMain.handle('player:fetch-quests', async (_event, rsn: string) => {
 
 ipcMain.handle('highlight:update', async (_event, config: HighlightConfig) => {
   const game = await findGameWindow();
-  if (game.found && game.bounds) {
-    updateGameHighlights(game.bounds, config);
+  if (!game.found || !game.bounds) {
+    clearGameHighlights();
+    return { ok: false, reason: 'RS3 window not found' };
   }
-  return { ok: true };
+
+  const plan = buildHighlightPlan({
+    mode: config.mode,
+    debugOverlay: config.debugOverlay,
+    gameBounds: game.bounds,
+    targets: config.targets,
+    inventoryItems: config.inventoryItems,
+    useOnPairs: config.useOnPairs,
+    dialogueNext: config.dialogueNext,
+    inventorySlots: config.inventorySlots,
+    inventoryCalibration: config.inventoryCalibration,
+    ocrBoxes: config.ocrDebugBoxes,
+  });
+
+  renderHighlightPlan(plan, game.bounds);
+  return { ok: true, debugLog: plan?.debugLog ?? [] };
 });
 
 ipcMain.handle('highlight:clear', async () => {
   clearGameHighlights();
+  return { ok: true };
+});
+
+ipcMain.handle('calibration:start', async () => {
+  return openCalibrationOverlay();
+});
+
+ipcMain.on('calibration:result', (_event, cal) => {
+  resolveCalibration(cal);
+});
+
+ipcMain.handle('calibration:cancel', async () => {
+  closeCalibrationOverlay();
+  resolveCalibration(null);
   return { ok: true };
 });

@@ -2,11 +2,32 @@ import screenshot from 'screenshot-desktop';
 import sharp from 'sharp';
 import { createWorker, type Worker } from 'tesseract.js';
 import type { GameWindowInfo } from './game-window';
+import {
+  type InventoryCalibration,
+  type InventorySlotHighlight,
+  DEFAULT_INVENTORY_CALIBRATION,
+  inventoryRectInGame,
+  pointToSlot,
+  slotRectInInventory,
+  INV_COLS,
+  INV_ROWS,
+  HIGHLIGHT_CONFIDENCE_MIN,
+} from './inventory-slots';
+
+export interface OcrDebugBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label: string;
+  confidence: number;
+}
 
 export interface ScreenReaderConfig {
   items: string[];
   currentStepText: string;
   stepKeywords: string[];
+  inventoryCalibration?: InventoryCalibration | null;
   completionChecks?: {
     chatContains?: string[];
     questJournalContains?: string[];
@@ -24,6 +45,9 @@ export interface ScreenReaderResult {
   ocrSnippet: string;
   bankOpen: boolean;
   bankScanned: boolean;
+  inventorySlots: InventorySlotHighlight[];
+  ocrDebugBoxes: OcrDebugBox[];
+  gameBounds: { x: number; y: number; width: number; height: number } | null;
 }
 
 let worker: Worker | null = null;
@@ -131,10 +155,17 @@ const LOCATION_PHRASES = [
 
 type CaptureRegion = 'full' | 'chat' | 'bank' | 'inventory';
 
+interface CropResult {
+  buffer: Buffer;
+  crop: { left: number; top: number; width: number; height: number };
+  scaledWidth: number;
+}
+
 async function captureRegion(
   bounds: GameWindowInfo['bounds'],
   region: CaptureRegion,
-): Promise<Buffer | null> {
+  calibration?: InventoryCalibration | null,
+): Promise<CropResult | null> {
   if (!bounds) return null;
 
   try {
@@ -156,7 +187,6 @@ async function captureRegion(
         };
         break;
       case 'bank':
-        // RS3 bank interface — center panel
         crop = {
           left: crop.left + Math.floor(bounds.width * 0.18),
           top: crop.top + Math.floor(bounds.height * 0.12),
@@ -164,26 +194,30 @@ async function captureRegion(
           height: Math.floor(bounds.height * 0.62),
         };
         break;
-      case 'inventory':
-        // Bottom-right inventory + backpack
+      case 'inventory': {
+        const cal = calibration ?? DEFAULT_INVENTORY_CALIBRATION;
         crop = {
-          left: crop.left + Math.floor(bounds.width * 0.58),
-          top: crop.top + Math.floor(bounds.height * 0.58),
-          width: Math.floor(bounds.width * 0.40),
-          height: Math.floor(bounds.height * 0.38),
+          left: crop.left + Math.floor(bounds.width * cal.left),
+          top: crop.top + Math.floor(bounds.height * cal.top),
+          width: Math.floor(bounds.width * cal.width),
+          height: Math.floor(bounds.height * cal.height),
         };
         break;
+      }
       default:
         break;
     }
 
     const maxWidth = region === 'bank' ? 900 : region === 'inventory' ? 500 : 800;
-    return sharp(fullScreen)
+    const scaledWidth = Math.min(crop.width, maxWidth);
+    const buffer = await sharp(fullScreen)
       .extract(crop)
-      .resize({ width: Math.min(crop.width, maxWidth) })
+      .resize({ width: scaledWidth })
       .sharpen()
       .png()
       .toBuffer();
+
+    return { buffer, crop, scaledWidth };
   } catch {
     return null;
   }
@@ -193,6 +227,108 @@ async function ocrBuffer(buffer: Buffer): Promise<string> {
   const w = await getWorker();
   const { data } = await w.recognize(buffer);
   return data.text;
+}
+
+function termMatchesWord(term: string, word: string): boolean {
+  const t = normalize(term);
+  const w = normalize(word);
+  if (t.length < 3 || w.length < 3) return false;
+  return w.includes(t) || t.includes(w);
+}
+
+async function detectInventorySlots(
+  invCapture: CropResult,
+  gameBounds: NonNullable<GameWindowInfo['bounds']>,
+  calibration: InventoryCalibration | null | undefined,
+  itemMap: Map<string, string[]>,
+  targetItems: string[],
+): Promise<{ slots: InventorySlotHighlight[]; ocrBoxes: OcrDebugBox[] }> {
+  const slots: InventorySlotHighlight[] = [];
+  const ocrBoxes: OcrDebugBox[] = [];
+  const invRect = inventoryRectInGame(gameBounds, calibration);
+  const cols = calibration?.cols ?? INV_COLS;
+  const rows = calibration?.rows ?? INV_ROWS;
+
+  const w = await getWorker();
+  const { data } = await w.recognize(invCapture.buffer);
+  const scale = invCapture.crop.width / invCapture.scaledWidth;
+
+  const ocrWords: Array<{ text: string; confidence: number; bbox: { x0: number; y1: number; x1: number; y0: number } }> = [];
+  for (const block of data.blocks ?? []) {
+    for (const para of block.paragraphs ?? []) {
+      for (const line of para.lines ?? []) {
+        for (const word of line.words ?? []) {
+          if (word.text?.trim()) ocrWords.push(word);
+        }
+      }
+    }
+  }
+
+  for (const word of ocrWords) {
+    const conf = (word.confidence ?? 0) / 100;
+    const text = word.text?.trim() ?? '';
+    if (!text) continue;
+
+    const bx0 = (word.bbox.x0 ?? 0) * scale;
+    const by0 = (word.bbox.y0 ?? 0) * scale;
+    const bx1 = (word.bbox.x1 ?? 0) * scale;
+    const by1 = (word.bbox.y1 ?? 0) * scale;
+    const localCx = (bx0 + bx1) / 2;
+    const localCy = (by0 + by1) / 2;
+
+    const screenX = invCapture.crop.left + bx0;
+    const screenY = invCapture.crop.top + by0;
+    const screenW = bx1 - bx0;
+    const screenH = by1 - by0;
+
+    ocrBoxes.push({
+      x: screenX,
+      y: screenY,
+      width: screenW,
+      height: screenH,
+      label: text,
+      confidence: conf,
+    });
+
+    if (conf < HIGHLIGHT_CONFIDENCE_MIN) continue;
+
+    for (const itemLabel of targetItems) {
+      const terms = itemMap.get(itemLabel) ?? [];
+      const matched = terms.some((term) => termMatchesWord(term, text));
+      if (!matched) continue;
+
+      const localInInv = {
+        x: localCx,
+        y: localCy,
+      };
+      const invW = invCapture.crop.width;
+      const invH = invCapture.crop.height;
+      const slotPos = pointToSlot(localInInv.x, localInInv.y, invW, invH, cols, rows);
+      if (!slotPos) continue;
+
+      const slotRect = slotRectInInventory(invRect, slotPos.col, slotPos.row, cols, rows);
+      const existing = slots.find((s) => s.item === itemLabel);
+      if (existing && existing.confidence >= conf) continue;
+
+      const entry: InventorySlotHighlight = {
+        item: itemLabel,
+        confidence: conf,
+        slotIndex: slotPos.slotIndex,
+        col: slotPos.col,
+        row: slotPos.row,
+        ...slotRect,
+      };
+
+      if (existing) {
+        const idx = slots.indexOf(existing);
+        slots[idx] = entry;
+      } else {
+        slots.push(entry);
+      }
+    }
+  }
+
+  return { slots, ocrBoxes };
 }
 
 function matchItemsInText(
@@ -222,15 +358,16 @@ export async function scanGameScreen(
   const inventoryItems = new Set<string>();
   const bankItems = new Set<string>();
 
-  const [fullBuffer, chatBuffer] = await Promise.all([
-    captureRegion(gameInfo.bounds, 'full'),
-    captureRegion(gameInfo.bounds, 'chat'),
+  const calibration = config.inventoryCalibration;
+  const [fullCapture, chatCapture] = await Promise.all([
+    captureRegion(gameInfo.bounds, 'full', calibration),
+    captureRegion(gameInfo.bounds, 'chat', calibration),
   ]);
 
-  if (!fullBuffer) return null;
+  if (!fullCapture) return null;
 
-  const fullText = await ocrBuffer(fullBuffer);
-  const chatText = chatBuffer ? await ocrBuffer(chatBuffer) : '';
+  const fullText = await ocrBuffer(fullCapture.buffer);
+  const chatText = chatCapture ? await ocrBuffer(chatCapture.buffer) : '';
   const combined = normalize(fullText + ' ' + chatText);
   const chatNorm = normalize(chatText);
 
@@ -243,9 +380,9 @@ export async function scanGameScreen(
   let bankScanned = false;
 
   if (bankOpen) {
-    const bankBuffer = await captureRegion(gameInfo.bounds, 'bank');
-    if (bankBuffer) {
-      const bankText = await ocrBuffer(bankBuffer);
+    const bankCapture = await captureRegion(gameInfo.bounds, 'bank', calibration);
+    if (bankCapture) {
+      const bankText = await ocrBuffer(bankCapture.buffer);
       bankEverScanned = true;
       for (const item of matchItemsInText(bankText, itemMap)) {
         bankItems.add(item);
@@ -255,13 +392,24 @@ export async function scanGameScreen(
     }
   }
 
-  // Inventory region scan
-  const invBuffer = await captureRegion(gameInfo.bounds, 'inventory');
-  if (invBuffer) {
-    const invText = await ocrBuffer(invBuffer);
+  let inventorySlots: InventorySlotHighlight[] = [];
+  let ocrDebugBoxes: OcrDebugBox[] = [];
+
+  const invCapture = await captureRegion(gameInfo.bounds, 'inventory', calibration);
+  if (invCapture) {
+    const invText = await ocrBuffer(invCapture.buffer);
     for (const item of matchItemsInText(invText, itemMap)) {
       inventoryItems.add(item);
     }
+    const slotResult = await detectInventorySlots(
+      invCapture,
+      gameInfo.bounds,
+      calibration,
+      itemMap,
+      config.items,
+    );
+    inventorySlots = slotResult.slots;
+    ocrDebugBoxes = slotResult.ocrBoxes;
   }
 
   // Chat withdraw detection (most reliable for bank → inventory)
@@ -340,9 +488,12 @@ export async function scanGameScreen(
     bankItems: Array.from(bankItems),
     needGeItems,
     suggestStepComplete,
-    ocrSnippet: chatText.slice(0, 80).trim(),
+    ocrSnippet: chatText.slice(0, 200).trim(),
     bankOpen,
     bankScanned,
+    inventorySlots,
+    ocrDebugBoxes,
+    gameBounds: gameInfo.bounds,
   };
 }
 

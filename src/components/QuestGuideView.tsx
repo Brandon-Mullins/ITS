@@ -8,6 +8,8 @@ interface QuestGuideViewProps {
   questStatus?: string | null;
   uiMode?: 'newbie' | 'veteran' | 'standard';
   isAttached?: boolean;
+  highlightSettings?: import('../types/quest').AppSettings;
+  onHighlightSettingsChange?: (updates: Partial<import('../types/quest').AppSettings>) => void;
   onBack: () => void;
   onRefresh: () => void;
   onProgressChange: (updates: Partial<QuestProgress>) => void;
@@ -20,6 +22,8 @@ export default function QuestGuideView({
   loading,
   uiMode = 'standard',
   isAttached,
+  highlightSettings,
+  onHighlightSettingsChange,
   onBack,
   onRefresh,
   onProgressChange,
@@ -44,6 +48,8 @@ export default function QuestGuideView({
       onRefresh={onRefresh}
       onProgressChange={onProgressChange}
       onDetach={onDetach}
+      highlightSettings={highlightSettings}
+      onHighlightSettingsChange={onHighlightSettingsChange}
     />
   );
 }

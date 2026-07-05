@@ -28,7 +28,7 @@ export default function MarkerPlaceholders({ step }: MarkerPlaceholdersProps) {
           </li>
         ))}
       </ul>
-      <p className="marker-note">Highlights render via Jagex MarkerProvider in native plugin.</p>
+      <p className="marker-note">NPC/object position shown here only — not drawn on game world until Jagex API provides coordinates.</p>
     </div>
   );
 }

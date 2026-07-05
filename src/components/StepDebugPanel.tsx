@@ -64,6 +64,18 @@ export default function StepDebugPanel({ debug, open, onToggle }: StepDebugPanel
           </div>
 
           <div className="debug-section">
+            <span className="debug-key">Inventory slot OCR (≥85% confidence)</span>
+            <ul className="debug-list">
+              {(debug.scan?.inventorySlots ?? []).map((s) => (
+                <li key={`${s.item}-${s.slotIndex}`}>
+                  {s.item} slot {s.slotIndex} — {Math.round(s.confidence * 100)}%
+                </li>
+              ))}
+              {(debug.scan?.inventorySlots ?? []).length === 0 && <li>No high-confidence slot match — banner only</li>}
+            </ul>
+          </div>
+
+          <div className="debug-section">
             <span className="debug-key">Confidence signals</span>
             <ul className="debug-list">
               {debug.confidence.map((c) => (

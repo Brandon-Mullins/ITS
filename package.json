@@ -1,6 +1,6 @@
 {
   "name": "rs3-quest-helper-overlay",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "RS3 Quest Helper Overlay — step-by-step quest guides powered by the RuneScape Wiki",
   "main": "dist-electron/main.js",
   "author": "RS3 Quest Helper",

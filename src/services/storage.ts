@@ -105,6 +105,9 @@ export async function loadSettings(): Promise<AppSettings> {
     accessibility: { largeText: false, highContrast: false },
     demoMode: false,
     tutorialComplete: false,
+    highlightMode: 'ui-only',
+    debugOverlay: false,
+    inventoryCalibration: null,
   };
 
   if (isElectron()) {

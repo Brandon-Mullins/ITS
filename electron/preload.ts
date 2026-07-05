@@ -1,22 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-interface ScreenReaderConfig {
-  items: string[];
-  currentStepText: string;
-  stepKeywords: string[];
-}
-
-interface ScreenReaderResult {
-  timestamp: string;
-  detectedItems: string[];
-  bankItems: string[];
-  needGeItems: string[];
-  suggestStepComplete: boolean;
-  ocrSnippet: string;
-  bankOpen: boolean;
-  bankScanned: boolean;
-}
-
 const api = {
   minimize: () => ipcRenderer.invoke('window:minimize'),
   close: () => ipcRenderer.invoke('window:close'),
@@ -32,24 +15,18 @@ const api = {
   gameAttach: () => ipcRenderer.invoke('game:attach'),
   gameDetach: () => ipcRenderer.invoke('game:detach'),
   gameStatus: () => ipcRenderer.invoke('game:status'),
-  screenReaderStart: (config: ScreenReaderConfig) =>
-    ipcRenderer.invoke('screen-reader:start', config),
+  screenReaderStart: (config: unknown) => ipcRenderer.invoke('screen-reader:start', config),
   screenReaderStop: () => ipcRenderer.invoke('screen-reader:stop'),
-  onScreenReaderResult: (callback: (result: ScreenReaderResult) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, result: ScreenReaderResult) =>
-      callback(result);
+  onScreenReaderResult: (callback: (result: unknown) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, result: unknown) => callback(result);
     ipcRenderer.on('screen-reader:result', handler);
     return () => ipcRenderer.removeListener('screen-reader:result', handler);
   },
   fetchPlayerQuests: (rsn: string) => ipcRenderer.invoke('player:fetch-quests', rsn),
-  updateHighlights: (config: {
-    targets: Array<{ type: string; label: string; action: string; itemName?: string; targetName?: string }>;
-    highlightInventory: boolean;
-    inventoryItems: string[];
-    useOnPairs?: Array<{ item: string; target: string }>;
-    dialogueNext?: string;
-  }) => ipcRenderer.invoke('highlight:update', config),
+  updateHighlights: (config: unknown) => ipcRenderer.invoke('highlight:update', config),
   clearHighlights: () => ipcRenderer.invoke('highlight:clear'),
+  startInventoryCalibration: () => ipcRenderer.invoke('calibration:start'),
+  cancelInventoryCalibration: () => ipcRenderer.invoke('calibration:cancel'),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

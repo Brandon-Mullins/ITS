@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { QuestGuide, QuestProgress, ScreenReaderResult } from '../types/quest';
+import type { QuestGuide, QuestProgress, ScreenReaderResult, AppSettings } from '../types/quest';
 import type { TravelRoute } from '../types/quest-data';
 import { openWikiUrl } from '../services/storage';
 import { useSmartDetect } from '../hooks/useSmartDetect';
@@ -12,6 +12,7 @@ import DialogueHelper from './DialogueHelper';
 import StepConfidencePanel from './StepConfidencePanel';
 import MistakeWarningsPanel from './MistakeWarningsPanel';
 import StepDebugPanel from './StepDebugPanel';
+import HighlightSettingsPanel from './HighlightSettingsPanel';
 import { extractItemName, itemGeSearchUrl } from '../utils/items';
 import { buildClickTargetCards, inventoryHighlightItems, getClickTargets } from '../utils/click-targets';
 import { listIncludesItem } from '../utils/item-match';
@@ -37,6 +38,10 @@ interface QuestHelperPanelProps {
   scanning?: boolean;
   debugOpen?: boolean;
   onDebugToggle?: () => void;
+  highlightSettings?: AppSettings;
+  onHighlightSettingsChange?: (updates: Partial<AppSettings>) => void;
+  onCalibrateInventory?: () => void;
+  calibrating?: boolean;
 }
 
 type ItemState = 'inventory' | 'bank' | 'ge' | 'pending';
@@ -80,6 +85,10 @@ export default function QuestHelperPanel({
   scanning = false,
   debugOpen = false,
   onDebugToggle,
+  highlightSettings,
+  onHighlightSettingsChange,
+  onCalibrateInventory,
+  calibrating,
 }: QuestHelperPanelProps) {
   const { metadata, steps } = guide;
   const currentIndex = Math.min(progress.currentStepIndex, Math.max(0, steps.length - 1));
@@ -140,6 +149,15 @@ export default function QuestHelperPanel({
       )}
 
       <div className="qh-body">
+        {highlightSettings && onHighlightSettingsChange && onCalibrateInventory && (
+          <HighlightSettingsPanel
+            settings={highlightSettings}
+            onChange={onHighlightSettingsChange}
+            onCalibrate={onCalibrateInventory}
+            calibrating={calibrating}
+          />
+        )}
+
         <nav className="qh-step-rail" aria-label="Quest steps">
           {steps.map((s, i) => (
             <button
@@ -299,11 +317,15 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps) {
   const [scanResult, setScanResult] = useState<ScreenReaderResult | null>(null);
   const [scanning, setScanning] = useState(false);
   const [debugOpen, setDebugOpen] = useState(false);
+  const [calibrating, setCalibrating] = useState(false);
+
+  const calibration = props.highlightSettings?.inventoryCalibration ?? null;
 
   useSmartDetect({
     enabled: true,
     guide: props.guide,
     progress: props.progress,
+    inventoryCalibration: calibration,
     onProgressChange: props.onProgressChange,
     onScanResult: (result) => {
       setScanning(true);
@@ -317,7 +339,26 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps) {
     Math.max(0, props.guide.steps.length - 1),
   );
   const step = props.guide.steps[currentIndex];
-  useGameHighlights({ step, enabled: true, progress: props.progress, scanResult });
+  useGameHighlights({
+    step,
+    enabled: true,
+    progress: props.progress,
+    scanResult,
+    settings: props.highlightSettings,
+  });
+
+  const handleCalibrate = async () => {
+    if (!window.electronAPI?.startInventoryCalibration) return;
+    setCalibrating(true);
+    try {
+      const cal = await window.electronAPI.startInventoryCalibration();
+      if (cal && props.onHighlightSettingsChange) {
+        props.onHighlightSettingsChange({ inventoryCalibration: cal });
+      }
+    } finally {
+      setCalibrating(false);
+    }
+  };
 
   return (
     <QuestHelperPanel
@@ -326,6 +367,8 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps) {
       scanning={scanning}
       debugOpen={debugOpen}
       onDebugToggle={() => setDebugOpen((o) => !o)}
+      onCalibrateInventory={handleCalibrate}
+      calibrating={calibrating}
     />
   );
 }

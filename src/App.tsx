@@ -39,9 +39,12 @@ const DEFAULT_SETTINGS: AppSettings = {
   accessibility: { largeText: false, highContrast: false },
   demoMode: false,
   tutorialComplete: false,
+  highlightMode: 'ui-only',
+  debugOverlay: false,
+  inventoryCalibration: null,
 };
 
-const CURRENT_SCHEMA_VERSION = 6;
+const CURRENT_SCHEMA_VERSION = 7;
 
 export default function App() {
   const [quests, setQuests] = useState<QuestIndexEntry[]>([]);
@@ -82,6 +85,8 @@ export default function App() {
           merged.settingsSchemaVersion = CURRENT_SCHEMA_VERSION;
           merged.attachToGame = false;
           merged.tutorialComplete = false;
+          merged.highlightMode = merged.highlightMode ?? 'ui-only';
+          merged.debugOverlay = merged.debugOverlay ?? false;
         }
 
         if (merged.lastSeenVersion !== appVersion) {
@@ -269,6 +274,8 @@ export default function App() {
               loading={guideLoading}
               uiMode={settings.uiMode}
               isAttached={isAttached}
+              highlightSettings={settings}
+              onHighlightSettingsChange={handleSettingsChange}
               onBack={() => { setView('search'); setGuide(null); }}
               onRefresh={handleRefreshGuide}
               onProgressChange={updateProgress}

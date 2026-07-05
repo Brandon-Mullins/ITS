@@ -1,10 +1,9 @@
 import { useEffect } from 'react';
-import type { QuestProgress, QuestStep, ScreenReaderResult } from '../types/quest';
+import type { AppSettings, QuestProgress, QuestStep, ScreenReaderResult } from '../types/quest';
 import {
   buildClickTargetCards,
   cardsToHighlightTargets,
   inventoryHighlightItems,
-  targetsNeedInventoryHighlight,
 } from '../utils/click-targets';
 import { getDialogueNextIndex, getUseOnPairs } from '../utils/step-analysis';
 
@@ -12,14 +11,30 @@ interface UseGameHighlightsOptions {
   step: QuestStep | null;
   progress?: QuestProgress | null;
   scanResult?: ScreenReaderResult | null;
+  settings?: AppSettings;
   enabled?: boolean;
 }
 
-/** Push click targets to Electron game overlay for blue aura highlights */
-export function useGameHighlights({ step, progress, scanResult, enabled = true }: UseGameHighlightsOptions) {
+/** Push click targets to Electron game overlay — safe UI-only by default (v0.6.4) */
+export function useGameHighlights({
+  step,
+  progress,
+  scanResult,
+  settings,
+  enabled = true,
+}: UseGameHighlightsOptions) {
+  const mode = settings?.highlightMode ?? 'ui-only';
+  const debugOverlay = settings?.debugOverlay ?? false;
+  const calibration = settings?.inventoryCalibration ?? null;
+
   useEffect(() => {
     if (!enabled || !step || !progress || !window.electronAPI?.updateHighlights) {
       window.electronAPI?.clearHighlights?.();
+      return;
+    }
+
+    if (mode === 'off') {
+      window.electronAPI.clearHighlights();
       return;
     }
 
@@ -31,6 +46,8 @@ export function useGameHighlights({ step, progress, scanResult, enabled = true }
     const dialogueNext = step.dialogueChoices?.[dialogueIdx];
 
     window.electronAPI.updateHighlights({
+      mode,
+      debugOverlay,
       targets: targets.map((t) => ({
         type: t.type,
         label: t.label,
@@ -38,14 +55,16 @@ export function useGameHighlights({ step, progress, scanResult, enabled = true }
         itemName: t.itemName,
         targetName: t.targetName,
       })),
-      highlightInventory: targetsNeedInventoryHighlight(targets),
       inventoryItems: invItems,
       useOnPairs,
       dialogueNext,
+      inventorySlots: scanResult?.inventorySlots ?? [],
+      inventoryCalibration: calibration,
+      ocrDebugBoxes: scanResult?.ocrDebugBoxes ?? [],
     });
 
     return () => {
       window.electronAPI?.clearHighlights?.();
     };
-  }, [step, progress, scanResult, enabled]);
+  }, [step, progress, scanResult, mode, debugOverlay, calibration, enabled]);
 }

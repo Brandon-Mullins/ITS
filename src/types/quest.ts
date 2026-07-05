@@ -87,6 +87,43 @@ export interface AppSettings {
   selectedGoal?: string;
   settingsSchemaVersion?: number;
   lastSeenVersion?: string;
+  /** v0.6.4 — in-game highlight accuracy */
+  highlightMode?: HighlightMode;
+  debugOverlay?: boolean;
+  inventoryCalibration?: InventoryCalibration | null;
+  showHighlightSettings?: boolean;
+}
+
+export type HighlightMode = 'off' | 'ui-only' | 'inventory-only' | 'experimental-world';
+
+export interface InventoryCalibration {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  cols?: number;
+  rows?: number;
+}
+
+export interface InventorySlotHighlight {
+  item: string;
+  confidence: number;
+  slotIndex: number;
+  col: number;
+  row: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface OcrDebugBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label: string;
+  confidence: number;
 }
 
 export interface GameWindowInfo {
@@ -105,12 +142,16 @@ export interface ScreenReaderResult {
   ocrSnippet: string;
   bankOpen: boolean;
   bankScanned: boolean;
+  inventorySlots?: InventorySlotHighlight[];
+  ocrDebugBoxes?: OcrDebugBox[];
+  gameBounds?: { x: number; y: number; width: number; height: number } | null;
 }
 
 export interface ScreenReaderConfig {
   items: string[];
   currentStepText: string;
   stepKeywords: string[];
+  inventoryCalibration?: InventoryCalibration | null;
   completionChecks?: {
     chatContains?: string[];
     questJournalContains?: string[];
@@ -128,11 +169,15 @@ export interface HighlightTargetPayload {
 }
 
 export interface HighlightConfig {
+  mode: HighlightMode;
+  debugOverlay: boolean;
   targets: HighlightTargetPayload[];
-  highlightInventory: boolean;
   inventoryItems: string[];
   useOnPairs?: Array<{ item: string; target: string }>;
   dialogueNext?: string;
+  inventorySlots?: InventorySlotHighlight[];
+  inventoryCalibration?: InventoryCalibration | null;
+  ocrDebugBoxes?: OcrDebugBox[];
 }
 
 export interface ElectronAPI {
@@ -152,8 +197,10 @@ export interface ElectronAPI {
   screenReaderStop: () => Promise<boolean>;
   onScreenReaderResult: (callback: (result: ScreenReaderResult) => void) => () => void;
   fetchPlayerQuests: (rsn: string) => Promise<import('../utils/quest-match').PlayerQuestData>;
-  updateHighlights: (config: HighlightConfig) => Promise<{ ok: boolean }>;
+  updateHighlights: (config: HighlightConfig) => Promise<{ ok: boolean; debugLog?: string[]; reason?: string }>;
   clearHighlights: () => Promise<{ ok: boolean }>;
+  startInventoryCalibration: () => Promise<InventoryCalibration | null>;
+  cancelInventoryCalibration: () => Promise<{ ok: boolean }>;
 }
 
 declare global {

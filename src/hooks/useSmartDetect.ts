@@ -26,6 +26,7 @@ interface UseSmartDetectOptions {
   enabled: boolean;
   guide: QuestGuide | null;
   progress: QuestProgress | null;
+  inventoryCalibration?: import('../types/quest').InventoryCalibration | null;
   onProgressChange: (updates: Partial<QuestProgress>) => void;
   onScanResult?: (result: ScreenReaderResult) => void;
 }
@@ -34,6 +35,7 @@ export function useSmartDetect({
   enabled,
   guide,
   progress,
+  inventoryCalibration,
   onProgressChange,
   onScanResult,
 }: UseSmartDetectOptions) {
@@ -60,6 +62,7 @@ export function useSmartDetect({
       currentStepText: currentStep?.text ?? '',
       stepKeywords: currentStep ? stepKeywordsFromStep(currentStep) : [],
       completionChecks: currentStep?.completionChecks,
+      inventoryCalibration: inventoryCalibration ?? null,
     });
 
     const unsubscribe = window.electronAPI.onScreenReaderResult((result) => {
@@ -118,5 +121,5 @@ export function useSmartDetect({
       unsubscribe();
       window.electronAPI?.screenReaderStop?.();
     };
-  }, [enabled, guide, progress?.currentStepIndex, onProgressChange, onScanResult]);
+  }, [enabled, guide, progress?.currentStepIndex, inventoryCalibration, onProgressChange, onScanResult]);
 }
