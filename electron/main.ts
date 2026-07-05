@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { GameWindowTracker, findGameWindow } from './game-window';
+import { updateGameHighlights, clearGameHighlights } from './highlight-overlay';
+import type { HighlightConfig } from './highlight-overlay';
 import { scanGameScreen, disposeScreenReader, extractStepKeywords, resetBankScanCache } from './screen-reader';
 import { fetchPlayerQuestsFromApi } from './player-api';
 import type { ScreenReaderConfig } from './screen-reader';
@@ -57,6 +59,7 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     stopScreenReader();
+    clearGameHighlights();
     gameTracker?.detach();
     mainWindow = null;
     gameTracker = null;
@@ -115,6 +118,7 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   stopScreenReader();
+  clearGameHighlights();
   disposeScreenReader();
   if (process.platform !== 'darwin') {
     app.quit();
@@ -208,4 +212,17 @@ ipcMain.handle('screen-reader:stop', async () => {
 
 ipcMain.handle('player:fetch-quests', async (_event, rsn: string) => {
   return fetchPlayerQuestsFromApi(rsn);
+});
+
+ipcMain.handle('highlight:update', async (_event, config: HighlightConfig) => {
+  const game = await findGameWindow();
+  if (game.found && game.bounds) {
+    updateGameHighlights(game.bounds, config);
+  }
+  return { ok: true };
+});
+
+ipcMain.handle('highlight:clear', async () => {
+  clearGameHighlights();
+  return { ok: true };
 });

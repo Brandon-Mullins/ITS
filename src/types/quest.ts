@@ -119,6 +119,19 @@ export interface ScreenReaderConfig {
   };
 }
 
+export interface HighlightTargetPayload {
+  type: string;
+  label: string;
+  action: string;
+  itemName?: string;
+}
+
+export interface HighlightConfig {
+  targets: HighlightTargetPayload[];
+  highlightInventory: boolean;
+  inventoryItems: string[];
+}
+
 export interface ElectronAPI {
   minimize: () => Promise<void>;
   close: () => Promise<void>;
@@ -136,6 +149,8 @@ export interface ElectronAPI {
   screenReaderStop: () => Promise<boolean>;
   onScreenReaderResult: (callback: (result: ScreenReaderResult) => void) => () => void;
   fetchPlayerQuests: (rsn: string) => Promise<import('../utils/quest-match').PlayerQuestData>;
+  updateHighlights: (config: HighlightConfig) => Promise<{ ok: boolean }>;
+  clearHighlights: () => Promise<{ ok: boolean }>;
 }
 
 declare global {

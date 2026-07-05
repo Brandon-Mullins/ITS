@@ -42,6 +42,12 @@ const api = {
     return () => ipcRenderer.removeListener('screen-reader:result', handler);
   },
   fetchPlayerQuests: (rsn: string) => ipcRenderer.invoke('player:fetch-quests', rsn),
+  updateHighlights: (config: {
+    targets: Array<{ type: string; label: string; action: string; itemName?: string }>;
+    highlightInventory: boolean;
+    inventoryItems: string[];
+  }) => ipcRenderer.invoke('highlight:update', config),
+  clearHighlights: () => ipcRenderer.invoke('highlight:clear'),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { buildShoppingList, copyShoppingList, formatShoppingListText } from '../services/item-brain';
 import { extractItemName, itemGeSearchUrl } from '../utils/items';
+import { listIncludesItem } from '../utils/item-match';
 import { openWikiUrl } from '../services/storage';
 
 interface ItemShoppingListProps {
@@ -8,6 +9,7 @@ interface ItemShoppingListProps {
   collectedItems: string[];
   bankItems: string[];
   needGeItems: string[];
+  clickTargetItems?: string[];
 }
 
 export default function ItemShoppingList({
@@ -15,6 +17,7 @@ export default function ItemShoppingList({
   collectedItems,
   bankItems,
   needGeItems,
+  clickTargetItems = [],
 }: ItemShoppingListProps) {
   const [copied, setCopied] = useState(false);
   const items = buildShoppingList(pageName, collectedItems, bankItems, needGeItems);
@@ -39,8 +42,10 @@ export default function ItemShoppingList({
         </button>
       </summary>
       <ul className="shopping-items">
-        {items.map((item) => (
-          <li key={item.name} className={`shop-item shop-${item.status}`}>
+        {items.map((item) => {
+          const isClickTarget = clickTargetItems.some((t) => listIncludesItem([t], item.name));
+          return (
+          <li key={item.name} className={`shop-item shop-${item.status} ${isClickTarget ? 'click-target-item blue-aura' : ''}`}>
             <span className="shop-cat">{item.category}</span>
             <span className="shop-name">{extractItemName(item.name)}</span>
             <button
@@ -52,7 +57,8 @@ export default function ItemShoppingList({
             </button>
             {item.ironmanNote && <span className="ironman-note">🛡 {item.ironmanNote}</span>}
           </li>
-        ))}
+          );
+        })}
       </ul>
     </details>
   );

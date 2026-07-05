@@ -1825,3 +1825,154 @@
 .browse-mode .qh-panel {
   min-height: 420px;
 }
+
+/* ── Blue aura click targets (v0.6.3) ── */
+
+@keyframes blue-aura-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(74, 144, 255, 0.5), 0 0 16px rgba(74, 144, 255, 0.25);
+    border-color: rgba(74, 144, 255, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(74, 144, 255, 0.9), 0 0 28px rgba(74, 144, 255, 0.45);
+    border-color: rgba(120, 180, 255, 1);
+  }
+}
+
+.blue-aura {
+  animation: blue-aura-glow 2s ease-in-out infinite;
+}
+
+.click-target-npc,
+.click-target-object {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 2px solid rgba(74, 144, 255, 0.7);
+  background: rgba(20, 50, 100, 0.45);
+  color: #8ec4ff !important;
+  font-weight: 700;
+}
+
+.click-targets-panel {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(20, 50, 100, 0.25);
+  border: 1px solid rgba(74, 144, 255, 0.35);
+}
+
+.click-targets-header {
+  margin-bottom: 8px;
+}
+
+.click-targets-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #8ec4ff;
+}
+
+.click-targets-sub {
+  display: block;
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.click-section-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6a9fd8;
+  margin-bottom: 6px;
+}
+
+.click-targets-section + .click-targets-section {
+  margin-top: 10px;
+}
+
+.click-target-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.click-target-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(10, 30, 70, 0.5);
+  border: 2px solid rgba(74, 144, 255, 0.55);
+  overflow: hidden;
+}
+
+.click-target-icon {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.click-target-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.click-target-action {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #6ab0ff;
+  margin-bottom: 2px;
+}
+
+.click-target-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #d0e8ff;
+}
+
+.click-target-on {
+  display: block;
+  font-size: 10px;
+  color: #8ec4ff;
+  margin-top: 2px;
+}
+
+.click-target-hint {
+  display: block;
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.click-target-card.target-npc .click-target-name {
+  color: #a8d4ff;
+}
+
+.click-target-item,
+.qh-item.click-target-item,
+.shop-item.click-target-item {
+  border-color: rgba(74, 144, 255, 0.75) !important;
+  background: rgba(20, 50, 100, 0.35) !important;
+  box-shadow: 0 0 10px rgba(74, 144, 255, 0.35);
+}
+
+.click-aura-ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 2px solid rgba(74, 144, 255, 0.3);
+  pointer-events: none;
+}

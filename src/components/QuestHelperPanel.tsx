@@ -6,7 +6,11 @@ import { useSmartDetect } from '../hooks/useSmartDetect';
 import RoutePanel from './RoutePanel';
 import MarkerPlaceholders from './MarkerPlaceholders';
 import ItemShoppingList from './ItemShoppingList';
+import ClickTargetsPanel from './ClickTargetsPanel';
 import { extractItemName, itemGeSearchUrl } from '../utils/items';
+import { getClickTargets, inventoryHighlightItems } from '../utils/click-targets';
+import { listIncludesItem } from '../utils/item-match';
+import { useGameHighlights } from '../hooks/useGameHighlights';
 
 interface QuestHelperPanelProps {
   guide: QuestGuide;
@@ -70,6 +74,8 @@ export default function QuestHelperPanel({
   };
 
   const stepItems = (step.stepItems?.length ?? 0) > 0 ? step.stepItems : metadata.items;
+  const clickTargets = getClickTargets(step);
+  const clickTargetItems = inventoryHighlightItems(clickTargets);
   const readyCount = stepItems.filter((i) => inv.includes(i)).length;
   const hasRoutes = routes.length > 0 || (step.fastestRoutes?.length ?? 0) > 0;
 
@@ -123,11 +129,21 @@ export default function QuestHelperPanel({
             {(step.location || step.npc || step.object) && (
               <div className="qh-location">
                 {step.location && <span className="qh-loc-pin">📍 {step.location}</span>}
-                {step.npc && <span className="qh-loc-npc">👤 {step.npc}</span>}
-                {step.object && <span className="qh-loc-obj">⚙ {step.object}</span>}
+                {step.npc && (
+                  <span className="qh-loc-npc click-target-npc blue-aura">
+                    👤 {step.npc}
+                  </span>
+                )}
+                {step.object && (
+                  <span className={`qh-loc-obj ${clickTargets.some((t) => t.type === 'object') ? 'click-target-object blue-aura' : ''}`}>
+                    ⚙ {step.object}
+                  </span>
+                )}
               </div>
             )}
             <p className="qh-instruction-text">{step.text}</p>
+
+            <ClickTargetsPanel targets={clickTargets} collectedItems={inv} />
             {step.areaWarning && (
               <p className="qh-area-warning">⚠ {step.areaWarning}</p>
             )}
@@ -179,8 +195,9 @@ export default function QuestHelperPanel({
               <ul className="qh-item-list">
                 {stepItems.map((item) => {
                   const st = itemState(item, inv, bank, ge);
+                  const isClickTarget = clickTargetItems.some((t) => listIncludesItem([t], item));
                   return (
-                    <li key={item} className={`qh-item qh-item-${st}`}>
+                    <li key={item} className={`qh-item qh-item-${st} ${isClickTarget ? 'click-target-item blue-aura' : ''}`}>
                       <span className="qh-item-icon" aria-hidden>
                         {st === 'inventory' ? '✓' : st === 'bank' ? '◉' : '○'}
                       </span>
@@ -204,6 +221,7 @@ export default function QuestHelperPanel({
             collectedItems={inv}
             bankItems={bank}
             needGeItems={ge}
+            clickTargetItems={clickTargetItems}
           />
 
           {(step.dialogueChoices?.length ?? 0) > 0 && (
@@ -256,5 +274,13 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps) {
     progress: props.progress,
     onProgressChange: props.onProgressChange,
   });
+
+  const currentIndex = Math.min(
+    props.progress.currentStepIndex,
+    Math.max(0, props.guide.steps.length - 1),
+  );
+  const step = props.guide.steps[currentIndex];
+  useGameHighlights({ step, enabled: true });
+
   return <QuestHelperPanel {...props} />;
 }
