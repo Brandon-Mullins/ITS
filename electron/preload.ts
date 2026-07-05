@@ -43,9 +43,11 @@ const api = {
   },
   fetchPlayerQuests: (rsn: string) => ipcRenderer.invoke('player:fetch-quests', rsn),
   updateHighlights: (config: {
-    targets: Array<{ type: string; label: string; action: string; itemName?: string }>;
+    targets: Array<{ type: string; label: string; action: string; itemName?: string; targetName?: string }>;
     highlightInventory: boolean;
     inventoryItems: string[];
+    useOnPairs?: Array<{ item: string; target: string }>;
+    dialogueNext?: string;
   }) => ipcRenderer.invoke('highlight:update', config),
   clearHighlights: () => ipcRenderer.invoke('highlight:clear'),
 };

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { QuestGuide, QuestProgress } from '../types/quest';
+import type { QuestGuide, QuestProgress, ScreenReaderResult } from '../types/quest';
 import type { TravelRoute } from '../types/quest-data';
 import { openWikiUrl } from '../services/storage';
 import { useSmartDetect } from '../hooks/useSmartDetect';
@@ -7,9 +7,21 @@ import RoutePanel from './RoutePanel';
 import MarkerPlaceholders from './MarkerPlaceholders';
 import ItemShoppingList from './ItemShoppingList';
 import ClickTargetsPanel from './ClickTargetsPanel';
+import UseOnHelper from './UseOnHelper';
+import DialogueHelper from './DialogueHelper';
+import StepConfidencePanel from './StepConfidencePanel';
+import MistakeWarningsPanel from './MistakeWarningsPanel';
+import StepDebugPanel from './StepDebugPanel';
 import { extractItemName, itemGeSearchUrl } from '../utils/items';
-import { getClickTargets, inventoryHighlightItems } from '../utils/click-targets';
+import { buildClickTargetCards, inventoryHighlightItems, getClickTargets } from '../utils/click-targets';
 import { listIncludesItem } from '../utils/item-match';
+import {
+  buildConfidenceSignals,
+  buildStepWarnings,
+  buildStepDebugInfo,
+  getUseOnPairs,
+  getDialogueNextIndex,
+} from '../utils/step-analysis';
 import { useGameHighlights } from '../hooks/useGameHighlights';
 
 interface QuestHelperPanelProps {
@@ -21,6 +33,10 @@ interface QuestHelperPanelProps {
   onProgressChange: (updates: Partial<QuestProgress>) => void;
   onDetach?: () => void;
   isAttached?: boolean;
+  scanResult?: ScreenReaderResult | null;
+  scanning?: boolean;
+  debugOpen?: boolean;
+  onDebugToggle?: () => void;
 }
 
 type ItemState = 'inventory' | 'bank' | 'ge' | 'pending';
@@ -34,10 +50,21 @@ const ROUTE_TAB_LABELS: Record<TravelRoute['type'], string> = {
 };
 
 function itemState(item: string, inv: string[], bank: string[], ge: string[]): ItemState {
-  if (inv.includes(item)) return 'inventory';
-  if (bank.includes(item)) return 'bank';
-  if (ge.includes(item)) return 'ge';
+  if (listIncludesItem(inv, item)) return 'inventory';
+  if (listIncludesItem(bank, item)) return 'bank';
+  if (listIncludesItem(ge, item)) return 'ge';
   return 'pending';
+}
+
+function itemAuraClass(
+  item: string,
+  inv: string[],
+  bank: string[],
+  isClickTarget: boolean,
+): string {
+  if (isClickTarget && listIncludesItem(inv, item)) return 'aura-blue';
+  if (listIncludesItem(inv, item) || listIncludesItem(bank, item)) return 'aura-green';
+  return 'aura-red';
 }
 
 export default function QuestHelperPanel({
@@ -49,6 +76,10 @@ export default function QuestHelperPanel({
   onProgressChange,
   onDetach,
   isAttached,
+  scanResult = null,
+  scanning = false,
+  debugOpen = false,
+  onDebugToggle,
 }: QuestHelperPanelProps) {
   const { metadata, steps } = guide;
   const currentIndex = Math.min(progress.currentStepIndex, Math.max(0, steps.length - 1));
@@ -74,9 +105,14 @@ export default function QuestHelperPanel({
   };
 
   const stepItems = (step.stepItems?.length ?? 0) > 0 ? step.stepItems : metadata.items;
-  const clickTargets = getClickTargets(step);
-  const clickTargetItems = inventoryHighlightItems(clickTargets);
-  const readyCount = stepItems.filter((i) => inv.includes(i)).length;
+  const clickCards = buildClickTargetCards(step, progress, guide.itemBrain);
+  const clickTargetItems = inventoryHighlightItems(getClickTargets(step));
+  const useOnPairs = getUseOnPairs(clickCards);
+  const confidence = buildConfidenceSignals(step, progress, scanResult);
+  const warnings = buildStepWarnings(step, guide, progress, clickCards);
+  const debugInfo = buildStepDebugInfo(guide, progress, scanResult);
+  const dialogueNext = getDialogueNextIndex(step.dialogueChoices ?? [], scanResult?.ocrSnippet ?? '');
+  const readyCount = stepItems.filter((i) => listIncludesItem(inv, i)).length;
   const hasRoutes = routes.length > 0 || (step.fastestRoutes?.length ?? 0) > 0;
 
   return (
@@ -128,24 +164,24 @@ export default function QuestHelperPanel({
             </div>
             {(step.location || step.npc || step.object) && (
               <div className="qh-location">
-                {step.location && <span className="qh-loc-pin">📍 {step.location}</span>}
+                {step.location && <span className="qh-loc-pin aura-blue">📍 {step.location}</span>}
                 {step.npc && (
-                  <span className="qh-loc-npc click-target-npc blue-aura">
-                    👤 {step.npc}
-                  </span>
+                  <span className="qh-loc-npc aura-blue">👤 {step.npc}</span>
                 )}
                 {step.object && (
-                  <span className={`qh-loc-obj ${clickTargets.some((t) => t.type === 'object') ? 'click-target-object blue-aura' : ''}`}>
-                    ⚙ {step.object}
-                  </span>
+                  <span className="qh-loc-obj aura-blue">⚙ {step.object}</span>
                 )}
               </div>
             )}
             <p className="qh-instruction-text">{step.text}</p>
 
-            <ClickTargetsPanel targets={clickTargets} collectedItems={inv} />
-            {step.areaWarning && (
-              <p className="qh-area-warning">⚠ {step.areaWarning}</p>
+            <ClickTargetsPanel cards={clickCards} />
+            <UseOnHelper pairs={useOnPairs} />
+            <StepConfidencePanel signals={confidence} scanning={scanning} />
+            <MistakeWarningsPanel warnings={warnings} />
+
+            {onDebugToggle && (
+              <StepDebugPanel debug={debugInfo} open={debugOpen} onToggle={onDebugToggle} />
             )}
           </div>
 
@@ -196,8 +232,9 @@ export default function QuestHelperPanel({
                 {stepItems.map((item) => {
                   const st = itemState(item, inv, bank, ge);
                   const isClickTarget = clickTargetItems.some((t) => listIncludesItem([t], item));
+                  const aura = itemAuraClass(item, inv, bank, isClickTarget);
                   return (
-                    <li key={item} className={`qh-item qh-item-${st} ${isClickTarget ? 'click-target-item blue-aura' : ''}`}>
+                    <li key={item} className={`qh-item qh-item-${st} ${aura}`}>
                       <span className="qh-item-icon" aria-hidden>
                         {st === 'inventory' ? '✓' : st === 'bank' ? '◉' : '○'}
                       </span>
@@ -225,16 +262,7 @@ export default function QuestHelperPanel({
           />
 
           {(step.dialogueChoices?.length ?? 0) > 0 && (
-            <div className="qh-section qh-dialogue-section">
-              <div className="qh-section-label">Say this</div>
-              <ul className="qh-dialogue">
-                {step.dialogueChoices.map((d) => (
-                  <li key={d}>
-                    <span className="qh-dialogue-bullet">›</span> {d}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <DialogueHelper choices={step.dialogueChoices} nextIndex={dialogueNext} />
           )}
 
           {(step.puzzleHints?.length ?? 0) > 0 && (
@@ -266,13 +294,22 @@ export default function QuestHelperPanel({
   );
 }
 
-/** Wrapper that hooks smart detect */
+/** Wrapper that hooks smart detect + game highlights */
 export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps) {
+  const [scanResult, setScanResult] = useState<ScreenReaderResult | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
+
   useSmartDetect({
     enabled: true,
     guide: props.guide,
     progress: props.progress,
     onProgressChange: props.onProgressChange,
+    onScanResult: (result) => {
+      setScanning(true);
+      setScanResult(result);
+      setTimeout(() => setScanning(false), 300);
+    },
   });
 
   const currentIndex = Math.min(
@@ -280,7 +317,15 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps) {
     Math.max(0, props.guide.steps.length - 1),
   );
   const step = props.guide.steps[currentIndex];
-  useGameHighlights({ step, enabled: true });
+  useGameHighlights({ step, enabled: true, progress: props.progress, scanResult });
 
-  return <QuestHelperPanel {...props} />;
+  return (
+    <QuestHelperPanel
+      {...props}
+      scanResult={scanResult}
+      scanning={scanning}
+      debugOpen={debugOpen}
+      onDebugToggle={() => setDebugOpen((o) => !o)}
+    />
+  );
 }

@@ -124,12 +124,15 @@ export interface HighlightTargetPayload {
   label: string;
   action: string;
   itemName?: string;
+  targetName?: string;
 }
 
 export interface HighlightConfig {
   targets: HighlightTargetPayload[];
   highlightInventory: boolean;
   inventoryItems: string[];
+  useOnPairs?: Array<{ item: string; target: string }>;
+  dialogueNext?: string;
 }
 
 export interface ElectronAPI {

@@ -110,7 +110,7 @@ const quest: StructuredQuestDefinition = {
         worldMapHint: 'Fairy ring network',
       },
     }),
-    questStep('fairy-tale-2-step-5', 'Brew the cure and return to the Fairy Queen in Zanaris.', {
+    questStep('fairy-tale-2-step-5', 'Use the ingredients on the queen\'s cauldron, then talk to the Fairy Queen in Zanaris.', {
       location: 'Zanaris',
       npc: 'Fairy Queen',
       requiredItems: ['Vial of water', 'Pestle and mortar'],
@@ -122,6 +122,7 @@ const quest: StructuredQuestDefinition = {
       },
       markers: {
         npc: 'Fairy Queen',
+        object: 'Queen\'s cauldron',
         area: 'Zanaris',
         minimapHint: 'NPC marker on Fairy Queen',
         worldMapHint: 'Zanaris',

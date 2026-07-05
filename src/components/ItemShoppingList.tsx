@@ -44,8 +44,10 @@ export default function ItemShoppingList({
       <ul className="shopping-items">
         {items.map((item) => {
           const isClickTarget = clickTargetItems.some((t) => listIncludesItem([t], item.name));
+          const hasReady = item.status === 'ready';
+          const aura = isClickTarget && hasReady ? 'aura-blue' : hasReady || item.status === 'bank' ? 'aura-green' : 'aura-red';
           return (
-          <li key={item.name} className={`shop-item shop-${item.status} ${isClickTarget ? 'click-target-item blue-aura' : ''}`}>
+          <li key={item.name} className={`shop-item shop-${item.status} ${aura}`}>
             <span className="shop-cat">{item.category}</span>
             <span className="shop-name">{extractItemName(item.name)}</span>
             <button

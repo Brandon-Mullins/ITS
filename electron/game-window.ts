@@ -2,6 +2,7 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { screen } from 'electron';
 import type { BrowserWindow } from 'electron';
+import { syncHighlightToGame } from './highlight-overlay';
 
 const execFileAsync = promisify(execFile);
 
@@ -213,5 +214,7 @@ export class GameWindowTracker {
       this.overlayWindow.show();
     }
     this.overlayWindow.moveTop();
+
+    syncHighlightToGame(info.bounds);
   }
 }
