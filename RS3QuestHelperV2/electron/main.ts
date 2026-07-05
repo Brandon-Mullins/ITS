@@ -11,7 +11,7 @@ import { fetchPlayerQuestsFromApi } from './player-api';
 import type { ScreenReaderConfig } from './screen-reader';
 
 const isDev = !app.isPackaged;
-export const APP_VERSION = 'v0.6.4-HIGHLIGHT-FIX';
+export const APP_VERSION = 'v0.6.5-LAYOUT-FIX';
 const DEV_PORT = 5174;
 
 let mainWindow: BrowserWindow | null = null;
@@ -35,11 +35,9 @@ function ensureDataDir(): void {
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 520,
-    height: 620,
-    minWidth: 400,
-    minHeight: 420,
-    maxWidth: 640,
-    maxHeight: 800,
+    height: 700,
+    minWidth: 420,
+    minHeight: 520,
     title: `RS3 Quest Helper V2 ${APP_VERSION}`,
     transparent: true,
     frame: false,
@@ -145,6 +143,11 @@ ipcMain.handle('window:toggle-always-on-top', (_event, value: boolean) => {
 
 ipcMain.handle('window:set-opacity', (_event, opacity: number) => {
   mainWindow?.setOpacity(opacity);
+});
+
+ipcMain.handle('window:set-size', (_event, width: number, height: number) => {
+  if (!mainWindow) return;
+  mainWindow.setSize(Math.max(420, width), Math.max(520, height));
 });
 
 ipcMain.handle('shell:open-external', (_event, url: string) => {

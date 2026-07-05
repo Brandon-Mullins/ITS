@@ -4,6 +4,7 @@ import { CURATED_QUESTS } from '../data/quests';
 const NAV_ITEMS = [
   { id: 'search' as const, label: 'Quests', icon: '📜' },
   { id: 'goals' as const, label: 'Goals', icon: '🎯' },
+  { id: 'settings' as const, label: 'Settings', icon: '⚙' },
   { id: 'editor' as const, label: 'Editor', icon: '✏' },
   { id: 'why' as const, label: 'Why RS3', icon: '💡' },
 ];
@@ -14,7 +15,7 @@ interface SidebarProps {
   currentIndex: number;
   onSelectStep: (index: number) => void;
   curatedQuestNames?: Array<{ pageName: string; name: string }>;
-  view: 'search' | 'guide' | 'goals' | 'editor' | 'why';
+  view: 'search' | 'guide' | 'goals' | 'editor' | 'why' | 'settings';
   onNavigate: (view: SidebarProps['view']) => void;
 }
 

@@ -18,6 +18,6 @@ npm run electron:fix
 .\START.ps1
 ```
 
-**Expected version:** `v0.6.4-HIGHLIGHT-FIX` (green banner + title bar + footer)
+**Expected version:** `v0.6.5-LAYOUT-FIX` (green banner + title bar + footer)
 
 See [RS3QuestHelperV2/README.md](RS3QuestHelperV2/README.md) for details.

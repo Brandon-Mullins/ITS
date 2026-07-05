@@ -92,6 +92,8 @@ export interface AppSettings {
   debugOverlay?: boolean;
   inventoryCalibration?: InventoryCalibration | null;
   showHighlightSettings?: boolean;
+  /** v0.6.5 — show layout debug outlines */
+  layoutDebug?: boolean;
 }
 
 export type HighlightMode = 'off' | 'ui-only' | 'inventory-only' | 'experimental-world';
@@ -201,6 +203,7 @@ export interface ElectronAPI {
   clearHighlights: () => Promise<{ ok: boolean }>;
   startInventoryCalibration: () => Promise<InventoryCalibration | null>;
   cancelInventoryCalibration: () => Promise<{ ok: boolean }>;
+  setWindowSize: (width: number, height: number) => Promise<void>;
 }
 
 declare global {

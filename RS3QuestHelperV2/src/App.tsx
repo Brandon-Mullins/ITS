@@ -25,12 +25,14 @@ import WhyRs3Page from './components/WhyRs3Page';
 import TutorialOverlay, { applyAccessibility } from './components/TutorialOverlay';
 import WhatsNewBanner from './components/WhatsNewBanner';
 import AttachModeHint from './components/AttachModeHint';
+import SettingsPanel from './components/SettingsPanel';
+import LayoutTestScreen from './components/LayoutTestScreen';
 import './App.css';
 
 export const V2_BUILD_ID = 'RS3QuestHelperV2';
-export const V2_VERSION = 'v0.6.4-HIGHLIGHT-FIX';
+export const V2_VERSION = 'v0.6.5-LAYOUT-FIX';
 
-type AppView = 'search' | 'guide' | 'goals' | 'editor' | 'why';
+type AppView = 'search' | 'guide' | 'goals' | 'editor' | 'why' | 'settings' | 'layout-test';
 
 const DEFAULT_SETTINGS: AppSettings = {
   alwaysOnTop: true,
@@ -44,9 +46,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   highlightMode: 'ui-only',
   debugOverlay: false,
   inventoryCalibration: null,
+  layoutDebug: false,
 };
 
-const CURRENT_SCHEMA_VERSION = 8;
+const CURRENT_SCHEMA_VERSION = 9;
 
 export default function App() {
   const [quests, setQuests] = useState<QuestIndexEntry[]>([]);
@@ -227,9 +230,9 @@ export default function App() {
   const isAttached = settings.attachToGame;
 
   return (
-    <div className={`overlay v2-app app-layout ${a11yClass} ${isAttached ? 'attach-mode' : 'browse-mode'}`}>
+    <div className={`overlay v2-app app-layout ${a11yClass} ${isAttached ? 'attach-mode' : 'browse-mode'} ${settings.layoutDebug ? 'layout-debug' : ''}`}>
       <div className="v2-verify-banner" role="status">
-        ✓ RS3 Quest Helper V2 — {V2_VERSION} — Port 5174 — NO in-game rectangles
+        ✓ RS3 Quest Helper V2 — {V2_VERSION}
       </div>
       <TitleBar settings={settings} version={V2_VERSION} onSettingsChange={handleSettingsChange} onToggleAttach={toggleAttach} />
 
@@ -243,7 +246,7 @@ export default function App() {
 
       {isAttached && <AttachModeHint onDetach={toggleAttach} />}
 
-      <div className="app-body">
+      <div className="app-shell">
         {!isAttached && (
           <Sidebar
             guide={guide}
@@ -251,8 +254,8 @@ export default function App() {
             currentIndex={currentStepIndex}
             onSelectStep={(i) => updateProgress({ currentStepIndex: i })}
             curatedQuestNames={curatedList}
-            view={view}
-            onNavigate={setView}
+            view={view === 'layout-test' ? 'settings' : view}
+            onNavigate={(v) => setView(v)}
           />
         )}
 
@@ -301,6 +304,19 @@ export default function App() {
 
           {view === 'editor' && <QuestEditor />}
           {view === 'why' && <WhyRs3Page />}
+
+          {view === 'settings' && (
+            <SettingsPanel
+              settings={settings}
+              version={V2_VERSION}
+              onChange={handleSettingsChange}
+              onOpenLayoutTest={() => setView('layout-test')}
+            />
+          )}
+
+          {view === 'layout-test' && (
+            <LayoutTestScreen onBack={() => setView('settings')} />
+          )}
         </div>
       </div>
 

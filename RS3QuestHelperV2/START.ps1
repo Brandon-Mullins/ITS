@@ -1,7 +1,7 @@
-# RS3 Quest Helper V2 — START (0.6.4-HIGHLIGHT-FIX)
+# RS3 Quest Helper V2 — START (0.6.5-LAYOUT-FIX)
 $ErrorActionPreference = "Stop"
 $ProjectDir = if ($PSScriptRoot) { $PSScriptRoot } else { "C:\Users\bmull\RS3QuestHelperV2" }
-$ExpectedVersion = "0.6.4-HIGHLIGHT-FIX"
+$ExpectedVersion = "0.6.5-LAYOUT-FIX"
 
 Write-Host ""
 Write-Host "================================================" -ForegroundColor Green
@@ -39,6 +39,6 @@ if (-not (Test-Path "node_modules")) { npm install }
 if (-not (Test-Path "node_modules\electron\dist\electron.exe")) { npm run electron:fix }
 
 npm run clean
-Write-Host "Look for green banner: v0.6.4-HIGHLIGHT-FIX" -ForegroundColor Green
+Write-Host "Look for green banner: v0.6.5-LAYOUT-FIX" -ForegroundColor Green
 Write-Host ""
 npm run electron:dev

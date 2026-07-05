@@ -5,6 +5,7 @@ const api = {
   close: () => ipcRenderer.invoke('window:close'),
   toggleAlwaysOnTop: (value: boolean) => ipcRenderer.invoke('window:toggle-always-on-top', value),
   setOpacity: (opacity: number) => ipcRenderer.invoke('window:set-opacity', opacity),
+  setWindowSize: (width: number, height: number) => ipcRenderer.invoke('window:set-size', width, height),
   openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
   storageRead: <T>(filename: string) => ipcRenderer.invoke('storage:read', filename),
   storageWrite: (filename: string, data: unknown) =>

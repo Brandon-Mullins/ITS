@@ -125,15 +125,6 @@ export default function QuestHelperPanel({
       )}
 
       <div className="qh-body">
-        {highlightSettings && onHighlightSettingsChange && onCalibrateInventory && (
-          <HighlightSettingsPanel
-            settings={highlightSettings}
-            onChange={onHighlightSettingsChange}
-            onCalibrate={onCalibrateInventory}
-            calibrating={calibrating}
-          />
-        )}
-
         <nav className="qh-step-rail" aria-label="Quest steps">
           {steps.map((s, i) => (
             <button
@@ -149,6 +140,15 @@ export default function QuestHelperPanel({
         </nav>
 
         <div className="qh-main">
+          {highlightSettings && onHighlightSettingsChange && onCalibrateInventory && (
+            <HighlightSettingsPanel
+              settings={highlightSettings}
+              onChange={onHighlightSettingsChange}
+              onCalibrate={onCalibrateInventory}
+              calibrating={calibrating}
+            />
+          )}
+
           <div className="qh-section qh-instruction">
             <div className="qh-step-header">
               <span className="qh-section-label">Step {currentIndex + 1} of {steps.length}</span>
