@@ -1,23 +1,43 @@
 # RS3 Quest Helper — use RS3QuestHelperV2 ONLY
 
-**Do not run the root `ITS` folder.** That is the legacy project.
+**Do not run the legacy root project.** Your folder must contain `package.json` with `"name": "rs3-quest-helper-v2"`.
 
-## Install (Windows)
+## If launch fails or you see "WRONG FOLDER"
+
+Your install is probably the old ITS repo root. Fix it:
 
 ```powershell
-Get-Process electron,node -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Seconds 2
-if (Test-Path "C:\Users\bmull\RS3QuestHelperV2") { Remove-Item "C:\Users\bmull\RS3QuestHelperV2" -Recurse -Force }
-cd C:\Users\bmull
-git clone --branch cursor/rs3questhelper-v2-1b6e --single-branch https://github.com/Brandon-Mullins/ITS.git RS3QuestHelperV2-tmp
-Move-Item "RS3QuestHelperV2-tmp\RS3QuestHelperV2" "RS3QuestHelperV2"
-Remove-Item "RS3QuestHelperV2-tmp" -Recurse -Force
-cd RS3QuestHelperV2
-npm install
-npm run electron:fix
-.\START.ps1
+cd C:\Users\bmull\RS3QuestHelperV2
+git fetch
+git checkout cursor/rasial-roadmap-1b6e
+git pull
+.\RS3QuestHelperV2\FIX-INSTALL.bat
 ```
 
-**Expected version:** `v0.6.5-LAYOUT-FIX` (green banner + title bar + footer)
+That wipes and reinstalls a **clean** V2-only folder, then launches.
+
+## Quick launch (correct install)
+
+Double-click **`START.bat`** in `C:\Users\bmull\RS3QuestHelperV2`
+
+Or:
+
+```powershell
+cd C:\Users\bmull\RS3QuestHelperV2
+.\START.bat
+```
+
+## Verify correct folder
+
+```powershell
+cd C:\Users\bmull\RS3QuestHelperV2
+(Get-Content package.json | ConvertFrom-Json).name
+```
+
+Must print: `rs3-quest-helper-v2`
+
+If it prints `rs3-quest-helper-overlay`, you are in the **wrong** (legacy) layout — run FIX-INSTALL.bat above.
+
+**Expected version:** `v0.7.0-RASIAL-ROADMAP`
 
 See [RS3QuestHelperV2/README.md](RS3QuestHelperV2/README.md) for details.
