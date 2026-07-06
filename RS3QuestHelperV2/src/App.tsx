@@ -30,7 +30,7 @@ import LayoutTestScreen from './components/LayoutTestScreen';
 import './App.css';
 
 export const V2_BUILD_ID = 'RS3QuestHelperV2';
-export const V2_VERSION = 'v0.6.7-ITEM-FIX';
+export const V2_VERSION = 'v0.7.0-RASIAL-ROADMAP';
 
 type AppView = 'search' | 'guide' | 'goals' | 'editor' | 'why' | 'settings' | 'layout-test';
 
@@ -50,7 +50,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   focusMode: true,
 };
 
-const CURRENT_SCHEMA_VERSION = 10;
+const CURRENT_SCHEMA_VERSION = 11;
 
 export default function App() {
   const [quests, setQuests] = useState<QuestIndexEntry[]>([]);
@@ -325,6 +325,8 @@ export default function App() {
               onStartQuest={loadGuide}
               playerData={playerData}
               questIndex={sortedQuests}
+              goalManualStatus={settings.goalManualStatus}
+              onGoalManualStatusChange={(goalManualStatus) => handleSettingsChange({ goalManualStatus })}
             />
           )}
 

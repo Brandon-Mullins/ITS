@@ -1,3 +1,5 @@
+import { RASIAL_RECOMMENDED_ORDER, RASIAL_UNLOCK_GOAL, getRasialQuestById } from './goals/rasialUnlock';
+
 export interface QuestGoal {
   id: string;
   name: string;
@@ -10,6 +12,13 @@ export interface QuestGoal {
 }
 
 export const QUEST_GOALS: QuestGoal[] = [
+  {
+    id: 'unlock-rasial',
+    name: 'Unlock Rasial',
+    description: RASIAL_UNLOCK_GOAL.description,
+    category: 'Boss Unlock',
+    questChain: RASIAL_RECOMMENDED_ORDER.map((id) => getRasialQuestById(id)!.pageName),
+  },
   {
     id: 'fairy-rings',
     name: 'Fairy Rings',

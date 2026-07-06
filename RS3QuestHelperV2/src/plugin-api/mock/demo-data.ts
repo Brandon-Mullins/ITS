@@ -12,6 +12,11 @@ export const DEMO_QUEST_STATES: PlayerQuestState[] = [
   { questId: 'elemental-workshop-2', name: 'Elemental Workshop II', status: 'NOT_STARTED', eligible: true },
   { questId: 'cooks-assistant', name: "Cook's Assistant", status: 'COMPLETED', eligible: true },
   { questId: 'demon-slayer', name: 'Demon Slayer', status: 'COMPLETED', eligible: true },
+  // Rasial roadmap demo progress
+  { questId: 'sea-slug', name: 'Sea Slug', status: 'COMPLETED', eligible: true },
+  { questId: 'hazeel-cult', name: 'Hazeel Cult', status: 'COMPLETED', eligible: true },
+  { questId: 'fight-arena', name: 'Fight Arena', status: 'COMPLETED', eligible: true },
+  { questId: 'tears-of-guthix', name: 'Tears of Guthix', status: 'COMPLETED', eligible: true },
 ];
 
 export const DEMO_INVENTORY = [

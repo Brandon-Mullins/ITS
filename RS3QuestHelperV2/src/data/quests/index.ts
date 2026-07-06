@@ -8,6 +8,7 @@ import fairyTale2 from './fairy-tale-2';
 import elementalWorkshop2 from './elemental-workshop-2';
 import elementalWorkshop3 from './elemental-workshop-3';
 import elementalWorkshop4 from './elemental-workshop-4';
+import { RASIAL_ROADMAP_QUESTS } from './rasial-roadmap';
 
 export const CURATED_QUESTS: StructuredQuestDefinition[] = [
   meetNaressa,
@@ -17,6 +18,7 @@ export const CURATED_QUESTS: StructuredQuestDefinition[] = [
   elementalWorkshop2,
   elementalWorkshop3,
   elementalWorkshop4,
+  ...RASIAL_ROADMAP_QUESTS,
 ];
 
 const byPageName = new Map<string, StructuredQuestDefinition>();

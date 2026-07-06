@@ -101,6 +101,8 @@ export interface AppSettings {
   layoutDebug?: boolean;
   /** v0.6.6 — hide sidebar during quest guide */
   focusMode?: boolean;
+  /** v0.7.0 — manual goal quest status overrides (goalId → questId → status) */
+  goalManualStatus?: Record<string, Record<string, 'locked' | 'ready' | 'started' | 'completed'>>;
 }
 
 export type HighlightMode = 'off' | 'ui-only' | 'inventory-only' | 'experimental-world';
