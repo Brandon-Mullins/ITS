@@ -1,8 +1,15 @@
 # RS3 Quest Helper V2 — START
-# Do NOT double-click this file — Windows opens .ps1 in Notepad.
-# Use START.bat instead (double-click START.bat).
+# Do NOT double-click this file — use START.bat instead.
 $ErrorActionPreference = "Stop"
-$ProjectDir = if ($PSScriptRoot) { $PSScriptRoot } else { Get-Location }
+$ProjectDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
+
+# If someone runs from parent folder, jump into nested app dir
+if (-not (Test-Path (Join-Path $ProjectDir "package.json"))) {
+    $nested = Join-Path $ProjectDir "RS3QuestHelperV2"
+    if (Test-Path (Join-Path $nested "package.json")) {
+        $ProjectDir = $nested
+    }
+}
 Set-Location $ProjectDir
 
 Write-Host ""
