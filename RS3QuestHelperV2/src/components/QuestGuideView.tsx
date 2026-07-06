@@ -1,4 +1,4 @@
-import type { QuestGuide, QuestProgress } from '../types/quest';
+import type { QuestGuide, QuestProgress, ProgressUpdater } from '../types/quest';
 import type { PlayerQuestData } from '../utils/quest-match';
 import { QuestHelperPanelWithDetect } from './QuestHelperPanel';
 
@@ -14,7 +14,7 @@ interface QuestGuideViewProps {
   onHighlightSettingsChange?: (updates: Partial<import('../types/quest').AppSettings>) => void;
   onBack: () => void;
   onRefresh: () => void;
-  onProgressChange: (updates: Partial<QuestProgress>) => void;
+  onProgressChange: (updates: ProgressUpdater) => void;
   onDetach?: () => void;
 }
 

@@ -2,25 +2,36 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ClickTargetCard } from '../utils/click-targets';
 import { extractItemName } from '../utils/items';
-import { listIncludesItem } from '../utils/item-match';
+import { hasQuestItem, itemReadySource } from '../utils/item-match';
 import type { ItemBrain } from '../types/quest-data';
 
 interface GpsMissingItemsProps {
   items: string[];
   inv: string[];
   bank: string[];
+  detected?: string[];
+  scanning?: boolean;
+  onMarkItem?: (item: string) => void;
 }
 
-export function GpsMissingItems({ items, inv, bank }: GpsMissingItemsProps) {
-  const [expanded, setExpanded] = useState(false);
-  const missing = items.filter((i) => !listIncludesItem(inv, i) && !listIncludesItem(bank, i));
+export function GpsMissingItems({
+  items,
+  inv,
+  bank,
+  detected = [],
+  scanning,
+  onMarkItem,
+}: GpsMissingItemsProps) {
+  const [collapsed, setCollapsed] = useState(false);
+  const missing = items.filter((i) => !hasQuestItem(i, inv, bank, detected));
   const ready = items.length - missing.length;
+  const allReady = missing.length === 0;
 
   if (items.length === 0) return null;
 
-  if (missing.length === 0) {
+  if (allReady && collapsed) {
     return (
-      <button type="button" className="gps-card gps-items-ready" onClick={() => setExpanded((e) => !e)}>
+      <button type="button" className="gps-card gps-items-ready" onClick={() => setCollapsed(false)}>
         <span className="gps-card-label">Required Items</span>
         <span className="gps-items-count">{ready}/{items.length} Ready ✓</span>
       </button>
@@ -28,25 +39,45 @@ export function GpsMissingItems({ items, inv, bank }: GpsMissingItemsProps) {
   }
 
   return (
-    <div className="gps-card gps-missing-items">
-      <div className="gps-card-label">❌ Missing Items</div>
-      <ul className="gps-missing-list">
-        {missing.map((item) => (
-          <li key={item}>{extractItemName(item)}</li>
-        ))}
+    <div className={`gps-card gps-items-panel ${allReady ? 'gps-items-all-ready' : 'gps-missing-items'}`}>
+      <div className="gps-items-header">
+        <span className="gps-card-label">
+          {allReady ? 'Required Items' : '❌ Missing Items'}
+        </span>
+        <span className={`gps-items-count ${allReady ? 'all-ready' : ''}`}>
+          {ready}/{items.length} ready
+          {scanning && ' · scanning…'}
+        </span>
+        {allReady && (
+          <button type="button" className="gps-collapse-btn" onClick={() => setCollapsed(true)}>
+            Collapse
+          </button>
+        )}
+      </div>
+      <ul className="gps-item-rows">
+        {items.map((item) => {
+          const status = itemReadySource(item, inv, bank, detected);
+          const isReady = status !== 'missing';
+          return (
+            <li key={item}>
+              <button
+                type="button"
+                className={`gps-item-row ${isReady ? 'gps-item-ready' : 'gps-item-missing'}`}
+                onClick={() => !isReady && onMarkItem?.(item)}
+                title={isReady ? 'Ready' : 'Click when you have this item'}
+              >
+                <span className="gps-item-status" aria-hidden>
+                  {status === 'inventory' ? '✓' : status === 'bank' ? '◉' : '○'}
+                </span>
+                <span className="gps-item-name">{extractItemName(item)}</span>
+                {status === 'bank' && <span className="gps-item-tag">bank</span>}
+                {status === 'inventory' && <span className="gps-item-tag ready">ready</span>}
+                {!isReady && <span className="gps-item-tap">tap when obtained</span>}
+              </button>
+            </li>
+          );
+        })}
       </ul>
-      {ready > 0 && (
-        <button type="button" className="gps-expand-btn" onClick={() => setExpanded((e) => !e)}>
-          {ready} ready — {expanded ? 'hide' : 'show'}
-        </button>
-      )}
-      {expanded && ready > 0 && (
-        <ul className="gps-ready-list">
-          {items.filter((i) => listIncludesItem(inv, i) || listIncludesItem(bank, i)).map((item) => (
-            <li key={item}>✓ {extractItemName(item)}</li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
@@ -56,11 +87,13 @@ interface GpsHeroClickTargetProps {
 }
 
 export function GpsHeroClickTarget({ cards }: GpsHeroClickTargetProps) {
-  const primary = cards.find((c) => c.aura === 'blue') ?? cards[0];
+  const primary = cards.find((c) => c.aura === 'blue') ?? cards.find((c) => c.aura === 'green') ?? cards[0];
   if (!primary) return null;
 
+  const isReady = primary.aura === 'green';
+
   return (
-    <div className="gps-hero-click">
+    <div className={`gps-hero-click ${isReady ? 'gps-hero-ready' : ''}`}>
       <div className="gps-hero-label">CLICK</div>
       <div className="gps-hero-name">{primary.name}</div>
       <div className="gps-hero-action">{primary.action}</div>
@@ -114,13 +147,14 @@ export function buildStepTips(
   itemBrain: ItemBrain | undefined,
   stepItems: string[],
   inv: string[],
+  detected: string[] = [],
 ): string[] {
   const tips: string[] = [];
   if (!itemBrain) return tips;
 
   for (const item of stepItems) {
     const name = extractItemName(item);
-    if (!listIncludesItem(inv, item) && !listIncludesItem(inv, name)) {
+    if (!hasQuestItem(item, inv, [], detected)) {
       tips.push(`Need ${name}.`);
     }
     if (itemBrain.consumed?.some((c) => c.toLowerCase().includes(name.toLowerCase()))) {

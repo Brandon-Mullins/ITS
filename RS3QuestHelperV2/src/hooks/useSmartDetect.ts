@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import type { QuestGuide, QuestProgress, ScreenReaderResult } from '../types/quest';
+import type { QuestGuide, QuestProgress, ScreenReaderResult, ProgressUpdater } from '../types/quest';
+import { itemLabelMatches } from '../utils/item-match';
 
 function stepKeywordsFromStep(step: QuestGuide['steps'][0]): string[] {
   const checks = step.completionChecks;
@@ -27,7 +28,7 @@ interface UseSmartDetectOptions {
   guide: QuestGuide | null;
   progress: QuestProgress | null;
   inventoryCalibration?: import('../types/quest').InventoryCalibration | null;
-  onProgressChange: (updates: Partial<QuestProgress>) => void;
+  onProgressChange: (updates: ProgressUpdater) => void;
   onScanResult?: (result: ScreenReaderResult) => void;
 }
 
@@ -70,51 +71,55 @@ export function useSmartDetect({
       const current = progressRef.current;
       if (!current || !guide) return;
 
-      const updates: Partial<QuestProgress> = {};
-      let changed = false;
+      onProgressChange((latest) => {
+        const updates: Partial<QuestProgress> = {};
+        let changed = false;
 
-      const collected = new Set(current.collectedItems ?? []);
-      for (const item of result.detectedItems) {
-        if (!collected.has(item)) {
-          collected.add(item);
-          changed = true;
-        }
-      }
-      if (changed) updates.collectedItems = Array.from(collected);
-
-      const bank = new Set(current.bankItems ?? []);
-      for (const item of result.bankItems) {
-        bank.add(item);
-      }
-      if (result.bankItems.length > 0) {
-        updates.bankItems = Array.from(bank);
-      }
-
-      // GE needed — remove from needGe if now in bank or inventory
-      const needGe = new Set(result.needGeItems);
-      for (const item of [...needGe]) {
-        if (collected.has(item) || bank.has(item)) needGe.delete(item);
-      }
-      if (needGe.size > 0 || (current.needGeItems ?? []).length > 0) {
-        updates.needGeItems = Array.from(needGe);
-      }
-
-      if (result.suggestStepComplete && guide.steps[current.currentStepIndex]) {
-        const stepId = guide.steps[current.currentStepIndex].id;
-        const completed = new Set(current.completedSteps);
-        if (!completed.has(stepId)) {
-          completed.add(stepId);
-          updates.completedSteps = Array.from(completed);
-          const nextIndex = Math.min(current.currentStepIndex + 1, guide.steps.length - 1);
-          if (nextIndex > current.currentStepIndex) {
-            updates.currentStepIndex = nextIndex;
+        const collected = new Set(latest.collectedItems ?? []);
+        const toAdd = [
+          ...result.detectedItems,
+          ...(result.inventorySlots ?? []).map((s) => s.item),
+        ];
+        for (const item of toAdd) {
+          const already = [...collected].some((c) => itemLabelMatches(c, item));
+          if (!already) {
+            collected.add(item);
+            changed = true;
           }
         }
-      }
+        if (changed) updates.collectedItems = Array.from(collected);
 
-      if (Object.keys(updates).length > 0) {
-        onProgressChange(updates);
-      }
+        const bank = new Set(latest.bankItems ?? []);
+        for (const item of result.bankItems) {
+          bank.add(item);
+        }
+        if (result.bankItems.length > 0) {
+          updates.bankItems = Array.from(bank);
+        }
+
+        const needGe = new Set(result.needGeItems);
+        for (const item of [...needGe]) {
+          if (collected.has(item) || bank.has(item)) needGe.delete(item);
+        }
+        if (needGe.size > 0 || (latest.needGeItems ?? []).length > 0) {
+          updates.needGeItems = Array.from(needGe);
+        }
+
+        if (result.suggestStepComplete && guide.steps[latest.currentStepIndex]) {
+          const stepId = guide.steps[latest.currentStepIndex].id;
+          const completed = new Set(latest.completedSteps);
+          if (!completed.has(stepId)) {
+            completed.add(stepId);
+            updates.completedSteps = Array.from(completed);
+            const nextIndex = Math.min(latest.currentStepIndex + 1, guide.steps.length - 1);
+            if (nextIndex > latest.currentStepIndex) {
+              updates.currentStepIndex = nextIndex;
+            }
+          }
+        }
+
+        return updates;
+      });
     });
 
     return () => {

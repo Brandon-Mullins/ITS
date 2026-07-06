@@ -73,6 +73,11 @@ export interface QuestProgress {
   lastUpdated: string;
 }
 
+/** Partial progress patch, or a function that derives a patch from the latest state */
+export type ProgressUpdater =
+  | Partial<QuestProgress>
+  | ((prev: QuestProgress) => Partial<QuestProgress>);
+
 export interface AppSettings {
   alwaysOnTop: boolean;
   opacity: number;

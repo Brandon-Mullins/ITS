@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { AppSettings, QuestGuide, QuestIndexEntry, QuestProgress } from './types/quest';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import type { AppSettings, QuestGuide, QuestIndexEntry, QuestProgress, ProgressUpdater } from './types/quest';
 import type { PlayerQuestData } from './utils/quest-match';
 import {
   loadQuestIndex,
@@ -30,7 +30,7 @@ import LayoutTestScreen from './components/LayoutTestScreen';
 import './App.css';
 
 export const V2_BUILD_ID = 'RS3QuestHelperV2';
-export const V2_VERSION = 'v0.6.6-GPS-UX';
+export const V2_VERSION = 'v0.6.7-ITEM-FIX';
 
 type AppView = 'search' | 'guide' | 'goals' | 'editor' | 'why' | 'settings' | 'layout-test';
 
@@ -57,6 +57,8 @@ export default function App() {
   const [selectedPageName, setSelectedPageName] = useState<string | null>(null);
   const [guide, setGuide] = useState<QuestGuide | null>(null);
   const [progress, setProgress] = useState<QuestProgress | null>(null);
+  const progressRef = useRef<QuestProgress | null>(null);
+  progressRef.current = progress;
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [playerData, setPlayerData] = useState<PlayerQuestData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -187,13 +189,22 @@ export default function App() {
   }, [selectedPageName]);
 
   const updateProgress = useCallback(
-    async (updates: Partial<QuestProgress>) => {
-      if (!progress || !selectedPageName) return;
-      const updated: QuestProgress = { ...progress, ...updates, lastUpdated: new Date().toISOString() };
+    async (updates: ProgressUpdater) => {
+      if (!selectedPageName) return;
+      const prev = progressRef.current;
+      if (!prev) return;
+      const partial = typeof updates === 'function' ? updates(prev) : updates;
+      if (Object.keys(partial).length === 0) return;
+      const updated: QuestProgress = {
+        ...prev,
+        ...partial,
+        lastUpdated: new Date().toISOString(),
+      };
+      progressRef.current = updated;
       setProgress(updated);
       await saveProgress(updated);
     },
-    [progress, selectedPageName],
+    [selectedPageName],
   );
 
   const sortedQuests = useMemo(

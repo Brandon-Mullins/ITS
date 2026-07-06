@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { QuestGuide, QuestProgress, ScreenReaderResult, AppSettings } from '../types/quest';
+import type { QuestGuide, QuestProgress, ScreenReaderResult, AppSettings, ProgressUpdater } from '../types/quest';
 import type { PlayerQuestData } from '../utils/quest-match';
 import { openWikiUrl } from '../services/storage';
 import { useSmartDetect } from '../hooks/useSmartDetect';
@@ -20,6 +20,7 @@ import {
   buildStepTips,
 } from './QuestGpsCards';
 import { buildClickTargetCards, inventoryHighlightItems, getClickTargets } from '../utils/click-targets';
+import { effectiveCollectedItems, itemLabelMatches } from '../utils/item-match';
 import {
   buildConfidenceSignals,
   buildStepWarnings,
@@ -36,7 +37,7 @@ interface QuestHelperPanelProps {
   uiMode?: 'newbie' | 'veteran' | 'standard';
   onBack: () => void;
   onRefresh: () => void;
-  onProgressChange: (updates: Partial<QuestProgress>) => void;
+  onProgressChange: (updates: ProgressUpdater) => void;
   onDetach?: () => void;
   isAttached?: boolean;
   scanResult?: ScreenReaderResult | null;
@@ -63,10 +64,38 @@ export default function QuestHelperPanel({
   const { metadata, steps } = guide;
   const currentIndex = Math.min(progress.currentStepIndex, Math.max(0, steps.length - 1));
   const step = steps[currentIndex];
+  const stepItems = (step.stepItems?.length ?? 0) > 0 ? step.stepItems : metadata.items;
   const inv = progress.collectedItems ?? [];
   const bank = progress.bankItems ?? [];
   const ge = progress.needGeItems ?? [];
+  const detected = useMemo(() => {
+    const fromScan = scanResult?.detectedItems ?? [];
+    const fromSlots = (scanResult?.inventorySlots ?? []).map((s) => s.item);
+    const merged = [...fromScan];
+    for (const slotItem of fromSlots) {
+      if (!merged.some((e) => itemLabelMatches(e, slotItem))) merged.push(slotItem);
+    }
+    return merged;
+  }, [scanResult]);
   const isStepComplete = progress.completedSteps.includes(step.id);
+
+  const effectiveInv = useMemo(
+    () => effectiveCollectedItems(inv, detected, stepItems),
+    [inv, detected, stepItems],
+  );
+
+  const effectiveProgress = useMemo(
+    () => ({ ...progress, collectedItems: effectiveInv }),
+    [progress, effectiveInv],
+  );
+
+  const markItemObtained = (item: string) => {
+    onProgressChange((prev) => {
+      const current = prev.collectedItems ?? [];
+      if (current.some((e) => itemLabelMatches(e, item))) return {};
+      return { collectedItems: [...current, item] };
+    });
+  };
 
   const travelBrain = useMemo(
     () => resolveTravelBrain(step, playerData, highlightSettings),
@@ -85,15 +114,14 @@ export default function QuestHelperPanel({
     });
   };
 
-  const stepItems = (step.stepItems?.length ?? 0) > 0 ? step.stepItems : metadata.items;
-  const clickCards = buildClickTargetCards(step, progress, guide.itemBrain);
+  const clickCards = buildClickTargetCards(step, effectiveProgress, guide.itemBrain);
   const clickTargetItems = inventoryHighlightItems(getClickTargets(step));
   const useOnPairs = getUseOnPairs(clickCards);
-  const confidence = buildConfidenceSignals(step, progress, scanResult);
-  const warnings = buildStepWarnings(step, guide, progress, clickCards);
+  const confidence = buildConfidenceSignals(step, effectiveProgress, scanResult);
+  const warnings = buildStepWarnings(step, guide, effectiveProgress, clickCards);
   const debugInfo = buildStepDebugInfo(guide, progress, scanResult);
   const dialogueNext = getDialogueNextIndex(step.dialogueChoices ?? [], scanResult?.ocrSnippet ?? '');
-  const tips = buildStepTips(guide.itemBrain, stepItems, inv);
+  const tips = buildStepTips(guide.itemBrain, stepItems, inv, detected);
 
   const confComplete = confidence.filter((s) => s.status === 'detected').length;
   const confAllGood = confidence.every((s) => s.status === 'detected' || s.status === 'unknown');
@@ -139,7 +167,14 @@ export default function QuestHelperPanel({
             </div>
           ) : (
             <>
-              <GpsMissingItems items={stepItems} inv={inv} bank={bank} />
+              <GpsMissingItems
+                items={stepItems}
+                inv={inv}
+                bank={bank}
+                detected={detected}
+                scanning={scanning}
+                onMarkItem={markItemObtained}
+              />
               <GpsTeleportPanel travel={travelBrain} />
               <GpsHeroClickTarget cards={clickCards} />
               {useOnPairs.length > 0 && <UseOnHelper pairs={useOnPairs} />}
@@ -225,10 +260,25 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps & {
     Math.max(0, props.guide.steps.length - 1),
   );
   const step = props.guide.steps[currentIndex];
+  const stepItems = (step.stepItems?.length ?? 0) > 0 ? step.stepItems : props.guide.metadata.items;
+
+  const highlightProgress = useMemo(() => {
+    const detected = [
+      ...(scanResult?.detectedItems ?? []),
+      ...(scanResult?.inventorySlots ?? []).map((s) => s.item),
+    ];
+    const effectiveInv = effectiveCollectedItems(
+      props.progress.collectedItems ?? [],
+      detected,
+      stepItems,
+    );
+    return { ...props.progress, collectedItems: effectiveInv };
+  }, [props.progress, scanResult, stepItems]);
+
   useGameHighlights({
     step,
     enabled: true,
-    progress: props.progress,
+    progress: highlightProgress,
     scanResult,
     settings: props.highlightSettings,
   });

@@ -1,6 +1,7 @@
 import type { ItemBrain, StructuredQuestDefinition } from '../types/quest-data';
 import type { QuestGuide } from '../types/quest';
 import { getCuratedQuest } from '../data/quests';
+import { listIncludesItem } from '../utils/item-match';
 
 export interface ShoppingListItem {
   name: string;
@@ -35,9 +36,9 @@ export function buildShoppingList(
   const add = (names: string[] | undefined, category: ShoppingListItem['category']) => {
     for (const name of names ?? []) {
       if (items.has(name)) continue;
-      const inInv = collectedItems.includes(name);
-      const inBank = bankItems.includes(name);
-      const needGe = needGeItems.includes(name);
+      const inInv = listIncludesItem(collectedItems, name);
+      const inBank = listIncludesItem(bankItems, name);
+      const needGe = listIncludesItem(needGeItems, name);
       items.set(name, {
         name,
         category,

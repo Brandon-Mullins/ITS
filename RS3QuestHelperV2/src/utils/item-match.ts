@@ -41,3 +41,46 @@ export function itemLabelMatches(haystack: string, needleLabel: string): boolean
 export function listIncludesItem(list: string[], itemLabel: string): boolean {
   return list.some((entry) => itemLabelMatches(entry, itemLabel));
 }
+
+/** Merge inventory, bank, and live OCR detections for quest item checks */
+export function hasQuestItem(
+  itemLabel: string,
+  inv: string[],
+  bank: string[],
+  detected: string[] = [],
+): boolean {
+  return (
+    listIncludesItem(inv, itemLabel) ||
+    listIncludesItem(bank, itemLabel) ||
+    listIncludesItem(detected, itemLabel)
+  );
+}
+
+export function itemReadySource(
+  itemLabel: string,
+  inv: string[],
+  bank: string[],
+  detected: string[] = [],
+): 'inventory' | 'bank' | 'missing' {
+  if (listIncludesItem(inv, itemLabel) || listIncludesItem(detected, itemLabel)) return 'inventory';
+  if (listIncludesItem(bank, itemLabel)) return 'bank';
+  return 'missing';
+}
+
+/** Build deduped collected list including live OCR hits mapped to quest labels */
+export function effectiveCollectedItems(
+  inv: string[],
+  detected: string[],
+  questItems: string[],
+): string[] {
+  const out = [...inv];
+  for (const det of detected) {
+    if (!out.some((e) => itemLabelMatches(e, det))) out.push(det);
+    for (const qi of questItems) {
+      if (itemLabelMatches(det, qi) && !out.some((e) => itemLabelMatches(e, qi))) {
+        out.push(qi);
+      }
+    }
+  }
+  return out;
+}

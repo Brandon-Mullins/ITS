@@ -74,10 +74,14 @@ function normalize(text: string): string {
 function parseItemSearchTerms(itemLabel: string): string[] {
   const base = itemLabel.replace(/\([^)]*\)/g, '').trim();
   const terms = new Set<string>();
-  if (base.length >= 3) terms.add(normalize(base));
-  for (const word of base.split(/\s+/)) {
-    const w = normalize(word);
-    if (w.length >= 4) terms.add(w);
+
+  const parts = /\bor\b/i.test(base) ? base.split(/\bor\b/i).map((s) => s.trim()) : [base];
+  for (const part of parts) {
+    if (part.length >= 3) terms.add(normalize(part));
+    for (const word of part.split(/\s+/)) {
+      const w = normalize(word);
+      if (w.length >= 3) terms.add(w);
+    }
   }
   return Array.from(terms);
 }
@@ -106,6 +110,14 @@ const WITHDRAW_PHRASES = [
   'you receive',
   'you collect',
   'you pick up',
+  'you pick up a',
+  'you pick up an',
+  'you pick up the',
+  'you take a',
+  'you take an',
+  'you take the',
+  'you get a',
+  'you get an',
   'you put aside',
   'you add',
   'you grab',
@@ -410,6 +422,9 @@ export async function scanGameScreen(
     );
     inventorySlots = slotResult.slots;
     ocrDebugBoxes = slotResult.ocrBoxes;
+    for (const slot of inventorySlots) {
+      inventoryItems.add(slot.item);
+    }
   }
 
   // Chat withdraw detection (most reliable for bank → inventory)
