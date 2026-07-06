@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { AppSettings, QuestGuide, QuestIndexEntry, QuestProgress } from './types/quest';
 import type { PlayerQuestData } from './utils/quest-match';
 import {
@@ -30,7 +30,7 @@ import LayoutTestScreen from './components/LayoutTestScreen';
 import './App.css';
 
 export const V2_BUILD_ID = 'RS3QuestHelperV2';
-export const V2_VERSION = 'v0.6.5-LAYOUT-FIX';
+export const V2_VERSION = 'v0.6.6-GPS-UX';
 
 type AppView = 'search' | 'guide' | 'goals' | 'editor' | 'why' | 'settings' | 'layout-test';
 
@@ -47,9 +47,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   debugOverlay: false,
   inventoryCalibration: null,
   layoutDebug: false,
+  focusMode: true,
 };
 
-const CURRENT_SCHEMA_VERSION = 9;
+const CURRENT_SCHEMA_VERSION = 10;
 
 export default function App() {
   const [quests, setQuests] = useState<QuestIndexEntry[]>([]);
@@ -210,6 +211,19 @@ export default function App() {
     setView('goals');
   };
 
+  const [calibrating, setCalibrating] = useState(false);
+
+  const handleCalibrateInventory = useCallback(async () => {
+    if (!window.electronAPI?.startInventoryCalibration) return;
+    setCalibrating(true);
+    try {
+      const cal = await window.electronAPI.startInventoryCalibration();
+      if (cal) handleSettingsChange({ inventoryCalibration: cal });
+    } finally {
+      setCalibrating(false);
+    }
+  }, [handleSettingsChange]);
+
   const footerStatus = attachError
     ? attachError
     : settings.demoMode
@@ -228,9 +242,10 @@ export default function App() {
   }
 
   const isAttached = settings.attachToGame;
+  const isFocusMode = (settings.focusMode ?? true) && view === 'guide';
 
   return (
-    <div className={`overlay v2-app app-layout ${a11yClass} ${isAttached ? 'attach-mode' : 'browse-mode'} ${settings.layoutDebug ? 'layout-debug' : ''}`}>
+    <div className={`overlay v2-app app-layout ${a11yClass} ${isAttached ? 'attach-mode' : 'browse-mode'} ${isFocusMode ? 'focus-mode' : ''} ${settings.layoutDebug ? 'layout-debug' : ''}`}>
       <div className="v2-verify-banner" role="status">
         ✓ RS3 Quest Helper V2 — {V2_VERSION}
       </div>
@@ -247,7 +262,7 @@ export default function App() {
       {isAttached && <AttachModeHint onDetach={toggleAttach} />}
 
       <div className="app-shell">
-        {!isAttached && (
+        {!isAttached && !isFocusMode && (
           <Sidebar
             guide={guide}
             progress={progress}
@@ -311,6 +326,8 @@ export default function App() {
               version={V2_VERSION}
               onChange={handleSettingsChange}
               onOpenLayoutTest={() => setView('layout-test')}
+              onCalibrateInventory={handleCalibrateInventory}
+              calibrating={calibrating}
             />
           )}
 

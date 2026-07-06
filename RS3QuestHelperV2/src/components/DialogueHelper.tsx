@@ -10,10 +10,9 @@ export default function DialogueHelper({ choices, nextIndex = 0 }: DialogueHelpe
   const safeNext = Math.min(Math.max(0, nextIndex), choices.length - 1);
 
   return (
-    <div className="dialogue-helper">
+    <div className="dialogue-helper dialogue-helper-docked">
       <div className="dialogue-helper-header">
-        <span className="qh-section-label">Dialogue — say in order</span>
-        <span className="dialogue-helper-note">Blue = next option · never auto-clicks</span>
+        <span className="gps-card-label">Dialogue</span>
       </div>
       <ol className="dialogue-helper-list">
         {choices.map((choice, i) => (

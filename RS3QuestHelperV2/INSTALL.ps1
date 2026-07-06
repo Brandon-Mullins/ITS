@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $Target = "C:\Users\bmull\RS3QuestHelperV2"
 $Branch = "cursor/rs3questhelper-v2-1b6e"
 $Repo = "https://github.com/Brandon-Mullins/ITS.git"
-$ExpectedVersion = "0.6.5-LAYOUT-FIX"
+$ExpectedVersion = "0.6.6-GPS-UX"
 
 Write-Host "Installing RS3 Quest Helper V2 ($ExpectedVersion) to $Target" -ForegroundColor Green
 

@@ -4,20 +4,22 @@ import type { PlayerQuestData } from '../utils/quest-match';
 import { openWikiUrl } from '../services/storage';
 import { useSmartDetect } from '../hooks/useSmartDetect';
 import { resolveTravelBrain } from '../services/travel-brain';
-import MarkerPlaceholders from './MarkerPlaceholders';
-import TravelBrainPanel from './TravelBrainPanel';
-import NpcInfoCard from './NpcInfoCard';
-import ItemDetailCard from './ItemDetailCard';
-import ItemShoppingList from './ItemShoppingList';
-import ClickTargetsPanel from './ClickTargetsPanel';
-import UseOnHelper from './UseOnHelper';
+import GpsTeleportPanel from './GpsTeleportPanel';
 import DialogueHelper from './DialogueHelper';
-import StepConfidencePanel from './StepConfidencePanel';
 import MistakeWarningsPanel from './MistakeWarningsPanel';
 import StepDebugPanel from './StepDebugPanel';
-import HighlightSettingsPanel from './HighlightSettingsPanel';
+import MarkerPlaceholders from './MarkerPlaceholders';
+import ItemShoppingList from './ItemShoppingList';
+import UseOnHelper from './UseOnHelper';
+import {
+  GpsMissingItems,
+  GpsHeroClickTarget,
+  GpsConfidenceBadge,
+  GpsTips,
+  GpsAdvancedSection,
+  buildStepTips,
+} from './QuestGpsCards';
 import { buildClickTargetCards, inventoryHighlightItems, getClickTargets } from '../utils/click-targets';
-import { listIncludesItem } from '../utils/item-match';
 import {
   buildConfidenceSignals,
   buildStepWarnings,
@@ -42,18 +44,13 @@ interface QuestHelperPanelProps {
   debugOpen?: boolean;
   onDebugToggle?: () => void;
   highlightSettings?: AppSettings;
-  onHighlightSettingsChange?: (updates: Partial<AppSettings>) => void;
-  onCalibrateInventory?: () => void;
-  calibrating?: boolean;
 }
 
 export default function QuestHelperPanel({
   guide,
   progress,
   playerData = null,
-  uiMode = 'standard',
   onBack,
-  onRefresh,
   onProgressChange,
   onDetach,
   isAttached,
@@ -62,9 +59,6 @@ export default function QuestHelperPanel({
   debugOpen = false,
   onDebugToggle,
   highlightSettings,
-  onHighlightSettingsChange,
-  onCalibrateInventory,
-  calibrating,
 }: QuestHelperPanelProps) {
   const { metadata, steps } = guide;
   const currentIndex = Math.min(progress.currentStepIndex, Math.max(0, steps.length - 1));
@@ -72,6 +66,7 @@ export default function QuestHelperPanel({
   const inv = progress.collectedItems ?? [];
   const bank = progress.bankItems ?? [];
   const ge = progress.needGeItems ?? [];
+  const isStepComplete = progress.completedSteps.includes(step.id);
 
   const travelBrain = useMemo(
     () => resolveTravelBrain(step, playerData, highlightSettings),
@@ -98,165 +93,117 @@ export default function QuestHelperPanel({
   const warnings = buildStepWarnings(step, guide, progress, clickCards);
   const debugInfo = buildStepDebugInfo(guide, progress, scanResult);
   const dialogueNext = getDialogueNextIndex(step.dialogueChoices ?? [], scanResult?.ocrSnippet ?? '');
-  const readyCount = stepItems.filter((i) => listIncludesItem(inv, i)).length;
+  const tips = buildStepTips(guide.itemBrain, stepItems, inv);
+
+  const confComplete = confidence.filter((s) => s.status === 'detected').length;
+  const confAllGood = confidence.every((s) => s.status === 'detected' || s.status === 'unknown');
 
   return (
-    <div className="qh-panel">
-      <header className="qh-header">
-        <button type="button" className="qh-icon-btn" onClick={onBack} title="Back to quest list">←</button>
+    <div className="qh-panel qh-gps-panel">
+      <header className="qh-header qh-gps-header">
+        <button type="button" className="qh-icon-btn" onClick={onBack} title="Back">←</button>
         <div className="qh-header-text">
           <h1 className="qh-quest-name">{metadata.name}</h1>
-          <div className="qh-badges">
-            {guide.source === 'curated' && <span className="qh-badge official">Official Guide</span>}
-            {guide.source !== 'curated' && <span className="qh-badge wiki">Wiki Guide</span>}
-            <span className="qh-badge steps">{steps.length} steps</span>
-            {metadata.members && <span className="qh-badge members">Members</span>}
-          </div>
+          <span className="qh-gps-step">Step {currentIndex + 1} of {steps.length}</span>
         </div>
-        <button type="button" className="qh-icon-btn" onClick={() => openWikiUrl(metadata.wikiUrl)} title="Open wiki">📖</button>
-        <button type="button" className="qh-icon-btn" onClick={onRefresh} title="Refresh guide">↻</button>
+        <button type="button" className="qh-icon-btn" onClick={() => openWikiUrl(metadata.wikiUrl)} title="Wiki">📖</button>
       </header>
 
       {isAttached && onDetach && (
         <div className="qh-detach-bar">
-          <span>Attached to game — tap below for full planner & goals</span>
-          <button type="button" className="qh-detach-btn" onClick={onDetach}>🔗 Detach</button>
+          <span>Locked to RS3 — hides when game loses focus</span>
+          <button type="button" className="qh-detach-btn" onClick={onDetach}>Detach</button>
         </div>
       )}
 
-      <div className="qh-body">
-        <nav className="qh-step-rail" aria-label="Quest steps">
+      <div className="qh-body qh-gps-body">
+        <nav className="qh-step-rail" aria-label="Steps">
           {steps.map((s, i) => (
             <button
               key={s.id}
               type="button"
               className={`qh-step-dot ${i === currentIndex ? 'active' : ''} ${progress.completedSteps.includes(s.id) ? 'done' : ''}`}
               onClick={() => goTo(i)}
-              title={`Step ${i + 1}: ${s.text}`}
+              title={`Step ${i + 1}`}
             >
               <span className="qh-step-num">{i + 1}</span>
             </button>
           ))}
         </nav>
 
-        <div className="qh-main">
-          {highlightSettings && onHighlightSettingsChange && onCalibrateInventory && (
-            <HighlightSettingsPanel
-              settings={highlightSettings}
-              onChange={onHighlightSettingsChange}
-              onCalibrate={onCalibrateInventory}
-              calibrating={calibrating}
-            />
-          )}
-
-          <div className="qh-section qh-instruction">
-            <div className="qh-step-header">
-              <span className="qh-section-label">Step {currentIndex + 1} of {steps.length}</span>
-              {progress.completedSteps.includes(step.id) && (
-                <span className="qh-step-done-badge">✓ Complete</span>
-              )}
+        <div className="qh-main qh-gps-main">
+          {isStepComplete ? (
+            <div className="gps-step-complete">
+              <div className="gps-complete-badge">Completed ✓</div>
+              <p className="gps-complete-hint">Press Next for the next step.</p>
             </div>
-            {step.npc && <NpcInfoCard npcName={step.npc} />}
-            {(step.location || step.object) && !step.npc && (
-              <div className="qh-location">
-                {step.location && <span className="qh-loc-pin aura-blue">📍 {step.location}</span>}
-                {step.object && (
-                  <span className="qh-loc-obj aura-blue">⚙ {step.object}</span>
+          ) : (
+            <>
+              <GpsMissingItems items={stepItems} inv={inv} bank={bank} />
+              <GpsTeleportPanel travel={travelBrain} />
+              <GpsHeroClickTarget cards={clickCards} />
+              {useOnPairs.length > 0 && <UseOnHelper pairs={useOnPairs} />}
+              <GpsConfidenceBadge
+                allGood={confAllGood}
+                completeCount={confComplete}
+                totalCount={confidence.length}
+                scanning={scanning}
+              />
+              <MistakeWarningsPanel warnings={warnings} />
+              <GpsTips tips={tips} />
+
+              <GpsAdvancedSection>
+                <p className="qh-instruction-text">{step.text}</p>
+                {onDebugToggle && (
+                  <StepDebugPanel debug={debugInfo} open={debugOpen} onToggle={onDebugToggle} />
                 )}
-              </div>
-            )}
-            <p className="qh-instruction-text">{step.text}</p>
-
-            <ClickTargetsPanel cards={clickCards} />
-            <UseOnHelper pairs={useOnPairs} />
-            <StepConfidencePanel signals={confidence} scanning={scanning} />
-            <MistakeWarningsPanel warnings={warnings} />
-
-            {onDebugToggle && (
-              <StepDebugPanel debug={debugInfo} open={debugOpen} onToggle={onDebugToggle} />
-            )}
-          </div>
-
-          <div className="qh-section qh-routes-section">
-            <TravelBrainPanel travel={travelBrain} uiMode={uiMode} />
-          </div>
-
-          <MarkerPlaceholders step={step} />
-
-          {stepItems.length > 0 && (
-            <div className="qh-section qh-items-section">
-              <div className="qh-items-header">
-                <span className="qh-section-label">Required items</span>
-                <span className={`qh-items-count ${readyCount === stepItems.length ? 'all-ready' : ''}`}>
-                  {readyCount}/{stepItems.length} ready
-                </span>
-              </div>
-              <ul className="qh-item-list tb-item-list">
-                {stepItems.map((item) => {
-                  const isClickTarget = clickTargetItems.some((t) => listIncludesItem([t], item));
-                  return (
-                    <ItemDetailCard
-                      key={item}
-                      item={item}
-                      inv={inv}
-                      bank={bank}
-                      ge={ge}
-                      itemBrain={guide.itemBrain}
-                      isClickTarget={isClickTarget}
-                    />
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-
-          <ItemShoppingList
-            pageName={metadata.pageName}
-            collectedItems={inv}
-            bankItems={bank}
-            needGeItems={ge}
-            clickTargetItems={clickTargetItems}
-          />
-
-          {(step.dialogueChoices?.length ?? 0) > 0 && (
-            <DialogueHelper choices={step.dialogueChoices} nextIndex={dialogueNext} />
-          )}
-
-          {(step.puzzleHints?.length ?? 0) > 0 && (
-            <div className="qh-section qh-puzzle-section">
-              <div className="qh-section-label">Puzzle hints</div>
-              <ul className="qh-puzzle-list">
-                {step.puzzleHints!.map((p) => <li key={p}>🧩 {p}</li>)}
-              </ul>
-            </div>
-          )}
-
-          {(step.combatWarnings?.length ?? 0) > 0 && (
-            <div className="qh-section qh-combat">
-              <div className="qh-section-label">Combat</div>
-              <ul className="qh-combat-list">
-                {step.combatWarnings.map((w) => <li key={w}>⚔ {w}</li>)}
-              </ul>
-            </div>
+                <MarkerPlaceholders step={step} />
+                <ItemShoppingList
+                  pageName={metadata.pageName}
+                  collectedItems={inv}
+                  bankItems={bank}
+                  needGeItems={ge}
+                  clickTargetItems={clickTargetItems}
+                />
+                {(step.puzzleHints?.length ?? 0) > 0 && (
+                  <ul className="qh-puzzle-list">
+                    {step.puzzleHints!.map((p) => <li key={p}>🧩 {p}</li>)}
+                  </ul>
+                )}
+                {(step.combatWarnings?.length ?? 0) > 0 && (
+                  <ul className="qh-combat-list">
+                    {step.combatWarnings.map((w) => <li key={w}>⚔ {w}</li>)}
+                  </ul>
+                )}
+              </GpsAdvancedSection>
+            </>
           )}
         </div>
       </div>
 
+      {(step.dialogueChoices?.length ?? 0) > 0 && !isStepComplete && (
+        <div className="qh-gps-dock">
+          <DialogueHelper choices={step.dialogueChoices} nextIndex={dialogueNext} />
+        </div>
+      )}
+
       <footer className="qh-footer">
-        <button type="button" className="qh-nav-btn" disabled={currentIndex === 0} onClick={() => goTo(currentIndex - 1)} title="Previous step">← Prev</button>
+        <button type="button" className="qh-nav-btn" disabled={currentIndex === 0} onClick={() => goTo(currentIndex - 1)}>← Prev</button>
         <button type="button" className="qh-done-btn" onClick={markDone}>Done ✓</button>
-        <button type="button" className="qh-nav-btn" disabled={currentIndex >= steps.length - 1} onClick={() => goTo(currentIndex + 1)} title="Next step">Next →</button>
+        <button type="button" className="qh-nav-btn" disabled={currentIndex >= steps.length - 1} onClick={() => goTo(currentIndex + 1)}>Next →</button>
       </footer>
     </div>
   );
 }
 
-/** Wrapper that hooks smart detect + game highlights */
-export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps) {
+export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps & {
+  onHighlightSettingsChange?: (updates: Partial<AppSettings>) => void;
+  onCalibrateInventory?: () => void;
+  calibrating?: boolean;
+}) {
   const [scanResult, setScanResult] = useState<ScreenReaderResult | null>(null);
   const [scanning, setScanning] = useState(false);
   const [debugOpen, setDebugOpen] = useState(false);
-  const [calibrating, setCalibrating] = useState(false);
 
   const calibration = props.highlightSettings?.inventoryCalibration ?? null;
 
@@ -286,19 +233,6 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps) {
     settings: props.highlightSettings,
   });
 
-  const handleCalibrate = async () => {
-    if (!window.electronAPI?.startInventoryCalibration) return;
-    setCalibrating(true);
-    try {
-      const cal = await window.electronAPI.startInventoryCalibration();
-      if (cal && props.onHighlightSettingsChange) {
-        props.onHighlightSettingsChange({ inventoryCalibration: cal });
-      }
-    } finally {
-      setCalibrating(false);
-    }
-  };
-
   return (
     <QuestHelperPanel
       {...props}
@@ -306,8 +240,6 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps) {
       scanning={scanning}
       debugOpen={debugOpen}
       onDebugToggle={() => setDebugOpen((o) => !o)}
-      onCalibrateInventory={handleCalibrate}
-      calibrating={calibrating}
     />
   );
 }

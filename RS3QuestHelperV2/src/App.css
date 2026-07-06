@@ -2845,3 +2845,269 @@
 }
 .tb-item-action.inventory { opacity: 0.6; cursor: default; }
 
+/* ── GPS Quest UX (v0.6.6) ── */
+.focus-mode .app-shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.qh-gps-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.qh-gps-header {
+  padding: 8px 10px;
+}
+
+.qh-gps-step {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7dd870;
+}
+
+.qh-gps-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 8px 8px;
+}
+
+.qh-gps-dock {
+  flex-shrink: 0;
+  border-top: 2px solid rgba(74, 144, 255, 0.35);
+  background: rgba(12, 22, 42, 0.95);
+  padding: 8px 10px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.gps-card {
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(12, 22, 42, 0.85);
+  border: 1px solid rgba(74, 144, 255, 0.2);
+  min-width: 0;
+}
+
+.gps-card-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6ab0ff;
+  margin-bottom: 6px;
+}
+
+.gps-missing-items {
+  border-color: rgba(220, 80, 80, 0.6);
+  background: rgba(80, 20, 20, 0.35);
+}
+
+.gps-missing-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fcc;
+}
+
+.gps-missing-list li {
+  padding: 3px 0;
+}
+
+.gps-items-ready {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  border-color: rgba(74, 200, 120, 0.4);
+  cursor: pointer;
+  color: inherit;
+}
+
+.gps-items-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #7dd870;
+}
+
+.gps-teleport-primary {
+  border-color: rgba(255, 217, 102, 0.45);
+  background: rgba(40, 35, 15, 0.5);
+}
+
+.gps-teleport-method {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffe8a0;
+  margin-bottom: 4px;
+}
+
+.gps-teleport-icon { font-size: 22px; }
+.gps-teleport-time { font-size: 12px; color: #ffd966; font-weight: 700; }
+.gps-teleport-walk { font-size: 11px; color: #9ab4d4; margin-top: 2px; }
+.gps-destination { font-size: 11px; color: #a8d4ff; margin-top: 6px; }
+.gps-dest-area { color: #7a8faa; }
+
+.gps-alts { margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); }
+.gps-alts-label { font-size: 9px; color: #7a8faa; text-transform: uppercase; display: block; margin-bottom: 4px; }
+.gps-alt-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.gps-alt-pill {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(30, 60, 110, 0.5);
+  border: 1px solid rgba(74, 144, 255, 0.25);
+  color: #c8daf0;
+}
+.gps-alt-pill.locked { opacity: 0.45; }
+
+.gps-hero-click {
+  text-align: center;
+  padding: 16px 12px;
+  border-radius: 10px;
+  border: 3px solid rgba(74, 144, 255, 0.85);
+  background: linear-gradient(180deg, rgba(20, 50, 100, 0.6), rgba(10, 25, 50, 0.8));
+  box-shadow: 0 0 20px rgba(74, 144, 255, 0.35);
+  animation: aura-blue-glow 2s ease-in-out infinite;
+}
+
+.gps-hero-label {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  color: #8ec4ff;
+  margin-bottom: 6px;
+}
+
+.gps-hero-name {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1.2;
+  margin-bottom: 4px;
+  word-wrap: break-word;
+}
+
+.gps-hero-action {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffd966;
+  text-transform: uppercase;
+}
+
+.gps-hero-loc {
+  font-size: 11px;
+  color: #9ab4d4;
+  margin-top: 6px;
+}
+
+.gps-confidence {
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  text-align: center;
+  width: 100%;
+  border: none;
+  cursor: default;
+}
+
+.gps-confidence-ok {
+  background: rgba(30, 80, 40, 0.4);
+  color: #7dd870;
+  font-weight: 600;
+}
+
+.gps-confidence-warn {
+  background: rgba(60, 50, 20, 0.5);
+  color: #ffd966;
+  cursor: pointer;
+  border: 1px solid rgba(255, 217, 102, 0.3);
+}
+
+.gps-tips {
+  border-color: rgba(255, 217, 102, 0.3);
+  background: rgba(50, 40, 15, 0.35);
+}
+
+.gps-tips-list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: #ffe8a0;
+  line-height: 1.45;
+}
+
+.gps-advanced { margin-top: 4px; }
+.gps-advanced-toggle {
+  width: 100%;
+  padding: 6px;
+  font-size: 10px;
+  color: #7a8faa;
+  background: transparent;
+  border: 1px dashed rgba(122, 143, 170, 0.35);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.gps-advanced-body {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+
+.gps-step-complete {
+  text-align: center;
+  padding: 24px 12px;
+}
+
+.gps-complete-badge {
+  font-size: 18px;
+  font-weight: 800;
+  color: #7dd870;
+  margin-bottom: 8px;
+}
+
+.gps-complete-hint {
+  font-size: 12px;
+  color: #9ab4d4;
+}
+
+.dialogue-helper-docked {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.dialogue-helper-docked .dialogue-helper-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dialogue-helper-docked .dialogue-helper-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.attach-mode .qh-step-rail,
+.focus-mode .qh-step-rail {
+  display: none;
+}
+
+.focus-mode .qh-gps-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+

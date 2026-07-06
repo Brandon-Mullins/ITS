@@ -11,7 +11,7 @@ import { fetchPlayerQuestsFromApi } from './player-api';
 import type { ScreenReaderConfig } from './screen-reader';
 
 const isDev = !app.isPackaged;
-export const APP_VERSION = 'v0.6.5-LAYOUT-FIX';
+export const APP_VERSION = 'v0.6.6-GPS-UX';
 const DEV_PORT = 5174;
 
 let mainWindow: BrowserWindow | null = null;

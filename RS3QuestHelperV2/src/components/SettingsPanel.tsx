@@ -1,10 +1,13 @@
 import type { AppSettings } from '../types/quest';
+import HighlightSettingsPanel from './HighlightSettingsPanel';
 
 interface SettingsPanelProps {
   settings: AppSettings;
   version: string;
   onChange: (updates: Partial<AppSettings>) => void;
   onOpenLayoutTest: () => void;
+  onCalibrateInventory?: () => void;
+  calibrating?: boolean;
 }
 
 export default function SettingsPanel({
@@ -12,6 +15,8 @@ export default function SettingsPanel({
   version,
   onChange,
   onOpenLayoutTest,
+  onCalibrateInventory,
+  calibrating,
 }: SettingsPanelProps) {
   const setWindowSize = async (width: number, height: number) => {
     await window.electronAPI?.setWindowSize?.(width, height);
@@ -23,8 +28,32 @@ export default function SettingsPanel({
       <p className="settings-version">Version: {version}</p>
 
       <section className="settings-section">
-        <h3 className="settings-section-title">Layout</h3>
+        <h3 className="settings-section-title">Questing</h3>
+        <label className="settings-row">
+          <input
+            type="checkbox"
+            checked={settings.focusMode ?? true}
+            onChange={(e) => onChange({ focusMode: e.target.checked })}
+          />
+          <span>Focus mode — hide sidebar while questing</span>
+        </label>
+        <p className="settings-hint">Hides nav when a guide is open so the GPS view uses full width.</p>
+      </section>
 
+      <section className="settings-section">
+        <h3 className="settings-section-title">In-game highlights (Advanced)</h3>
+        {onCalibrateInventory && (
+          <HighlightSettingsPanel
+            settings={settings}
+            onChange={onChange}
+            onCalibrate={onCalibrateInventory}
+            calibrating={calibrating}
+          />
+        )}
+      </section>
+
+      <section className="settings-section">
+        <h3 className="settings-section-title">Layout</h3>
         <label className="settings-row">
           <input
             type="checkbox"
@@ -33,12 +62,9 @@ export default function SettingsPanel({
           />
           <span>Layout debug outlines</span>
         </label>
-        <p className="settings-hint">Shows colored borders around shell, nav, content, footer, and step rail.</p>
-
         <button type="button" className="settings-action-btn" onClick={onOpenLayoutTest}>
           Open Layout Test
         </button>
-        <p className="settings-hint">Stress-test screen — must not clip above minimum window size.</p>
       </section>
 
       <section className="settings-section">
@@ -54,13 +80,6 @@ export default function SettingsPanel({
             Minimum (420×520)
           </button>
         </div>
-      </section>
-
-      <section className="settings-section">
-        <h3 className="settings-section-title">Highlights</h3>
-        <p className="settings-hint">
-          {version}: No in-game rectangles. Text callouts + helper panel cards only.
-        </p>
       </section>
     </div>
   );
