@@ -10,13 +10,13 @@ Do **NOT** use `C:\Users\bmull\ITS` — that is the old project.
 
 **Double-click `START.bat`** in this folder.
 
-> Do **not** double-click `START.ps1` — Windows opens `.ps1` files in Notepad by default.
+`START.bat` is pure batch (no PowerShell) so it works reliably on Windows.
 
 Or from PowerShell:
 
 ```powershell
 cd C:\Users\bmull\RS3QuestHelperV2
-.\START.ps1
+.\START.bat
 ```
 
 ## One-command install (PowerShell)
