@@ -1,11 +1,11 @@
 # RS3 Quest Helper V2 — Full fresh install to C:\Users\bmull\RS3QuestHelperV2
 $ErrorActionPreference = "Stop"
 $Target = "C:\Users\bmull\RS3QuestHelperV2"
-$Branch = "cursor/rs3questhelper-v2-1b6e"
+$Branch = "cursor/rasial-roadmap-1b6e"
 $Repo = "https://github.com/Brandon-Mullins/ITS.git"
-$ExpectedVersion = "0.6.6-GPS-UX"
 
-Write-Host "Installing RS3 Quest Helper V2 ($ExpectedVersion) to $Target" -ForegroundColor Green
+Write-Host "Installing RS3 Quest Helper V2 to $Target" -ForegroundColor Green
+Write-Host "Branch: $Branch" -ForegroundColor Cyan
 
 Get-Process electron,node -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 2
@@ -17,6 +17,7 @@ if (Test-Path $Tmp) { Remove-Item $Tmp -Recurse -Force }
 git clone --branch $Branch --single-branch $Repo $Tmp
 if (-not (Test-Path "$Tmp\RS3QuestHelperV2")) {
     Write-Host "ERROR: RS3QuestHelperV2 folder missing in repo" -ForegroundColor Red
+    Read-Host "Press Enter to close"
     exit 1
 }
 
@@ -28,11 +29,11 @@ npm install
 npm run electron:fix
 
 $ver = (Get-Content package.json -Raw | ConvertFrom-Json).version
-if ($ver -ne $ExpectedVersion) {
-    Write-Host "ERROR: Installed version $ver not $ExpectedVersion" -ForegroundColor Red
-    exit 1
-}
-
 Write-Host ""
-Write-Host "SUCCESS: $Target ready at $ver" -ForegroundColor Green
-Write-Host "Run: cd $Target; .\START.ps1" -ForegroundColor Cyan
+Write-Host "SUCCESS: $Target ready at v$ver" -ForegroundColor Green
+Write-Host ""
+Write-Host "To launch:" -ForegroundColor Cyan
+Write-Host "  Double-click: $Target\START.bat" -ForegroundColor White
+Write-Host "  Or PowerShell: cd $Target; .\START.ps1" -ForegroundColor White
+Write-Host ""
+Read-Host "Press Enter to close"
