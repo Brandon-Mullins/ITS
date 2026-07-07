@@ -14,10 +14,15 @@ taskkill /F /IM node.exe >nul 2>&1
 timeout /t 2 /nobreak >nul
 
 if not exist "package.json" (
-    echo ERROR: package.json not found in %CD%
-    echo Run INSTALL.bat first.
-    pause
-    exit /b 1
+    if exist "RS3QuestHelperV2\package.json" (
+        echo Found nested app folder - switching to RS3QuestHelperV2\
+        cd /d "%~dp0RS3QuestHelperV2"
+    ) else (
+        echo ERROR: package.json not found in %CD%
+        echo Run UPDATE.bat from C:\Users\bmull for a fresh install.
+        pause
+        exit /b 1
+    )
 )
 
 findstr /C:"rs3-quest-helper-v2" package.json >nul
@@ -26,6 +31,8 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+
+for /f "delims=" %%V in ('node -p "require('./package.json').version"') do set APPVER=%%V
 
 if not exist "node_modules" (
     echo Installing dependencies...
@@ -43,7 +50,8 @@ call npm run clean
 if errorlevel 1 goto :failed
 
 echo.
-echo Starting app - look for v0.7.0-RASIAL-ROADMAP in the footer.
+echo Starting app - look for v%APPVER% in the footer.
+echo Folder: %CD%
 echo.
 call npm run electron:dev
 if errorlevel 1 goto :failed
