@@ -1,8 +1,11 @@
 @echo off
+setlocal
 title RS3 Quest Helper V2 - Update
 echo.
 echo This installs a FLAT copy to C:\Users\bmull\RS3QuestHelperV2
-echo (not nested inside another RS3QuestHelperV2 folder)
+echo Branch: cursor/inv-fix-1b6e (v0.7.4-ATTACH-FIX)
+echo.
+echo IMPORTANT: Deletes your old RS3QuestHelperV2 folder first.
 echo.
 pause
 
@@ -22,6 +25,9 @@ move RS3QuestHelperV2-tmp\RS3QuestHelperV2 RS3QuestHelperV2
 rmdir /s /q RS3QuestHelperV2-tmp
 
 cd RS3QuestHelperV2
+for /f "delims=" %%V in ('node -p "require('./package.json').version"') do set APPVER=%%V
+echo Installed version: v%APPVER%
+
 call npm install
 if errorlevel 1 goto :failed
 call npm run electron:fix
