@@ -45,6 +45,9 @@ export interface ScreenReaderResult {
   ocrSnippet: string;
   bankOpen: boolean;
   bankScanned: boolean;
+  inventoryScanned: boolean;
+  chatItemsAdded: string[];
+  chatItemsRemoved: string[];
   inventorySlots: InventorySlotHighlight[];
   ocrDebugBoxes: OcrDebugBox[];
   gameBounds: { x: number; y: number; width: number; height: number } | null;
@@ -102,17 +105,18 @@ export function extractStepKeywords(stepText: string): string[] {
     .slice(0, 6);
 }
 
-const WITHDRAW_PHRASES = [
+const PICKUP_PHRASES = [
+  'you pick up',
+  'you pick up a',
+  'you pick up an',
+  'you pick up the',
+  'you pick up some',
   'you withdraw',
   'you take',
   'you get',
   'you obtain',
   'you receive',
   'you collect',
-  'you pick up',
-  'you pick up a',
-  'you pick up an',
-  'you pick up the',
   'you take a',
   'you take an',
   'you take the',
@@ -122,11 +126,38 @@ const WITHDRAW_PHRASES = [
   'you add',
   'you grab',
   'you take out',
-  'you use the',
-  'you use your',
-  'you use a',
-  'you use an',
+  'you loot',
+  'you found',
+  'you retrieve',
+  'added to your inventory',
+  'you create',
 ];
+
+const DROP_PHRASES = [
+  'you drop',
+  'you drop a',
+  'you drop an',
+  'you drop the',
+  'you destroy',
+  'you lose',
+  'you sacrifice',
+  'you remove',
+  'you discard',
+  'you bury',
+];
+
+const DEPOSIT_PHRASES = [
+  'you deposit',
+  'you deposit a',
+  'you deposit an',
+  'you deposit the',
+  'you bank',
+  'you put in your bank',
+  'you store',
+];
+
+/** @deprecated use PICKUP_PHRASES */
+const WITHDRAW_PHRASES = PICKUP_PHRASES;
 
 const STEP_COMPLETE_PHRASES = [
   'quest complete',
@@ -343,6 +374,68 @@ async function detectInventorySlots(
   return { slots, ocrBoxes };
 }
 
+function matchItemInBlob(
+  blob: string,
+  itemLabel: string,
+  terms: string[],
+): boolean {
+  for (const term of terms) {
+    if (term.length >= 3 && blob.includes(term)) return true;
+  }
+  return false;
+}
+
+/** Parse RS3 chat for pick-up, drop, and bank deposit events */
+export function parseChatInventoryEvents(
+  chatText: string,
+  itemMap: Map<string, string[]>,
+): { added: string[]; removed: string[] } {
+  const added = new Set<string>();
+  const removed = new Set<string>();
+  const norm = normalize(chatText);
+  const lines = chatText.split(/\r?\n/).map((l) => normalize(l)).filter(Boolean);
+
+  const checkLine = (line: string, phrases: string[], target: Set<string>) => {
+    for (const [itemLabel, terms] of itemMap) {
+      if (!matchItemInBlob(line, itemLabel, terms)) continue;
+      for (const phrase of phrases) {
+        if (line.includes(phrase)) {
+          target.add(itemLabel);
+          break;
+        }
+      }
+    }
+  };
+
+  for (const line of lines) {
+    checkLine(line, PICKUP_PHRASES, added);
+    checkLine(line, DROP_PHRASES, removed);
+    checkLine(line, DEPOSIT_PHRASES, removed);
+  }
+
+  // Proximity match: pickup phrase within ~100 chars of item term in full chat
+  for (const [itemLabel, terms] of itemMap) {
+    for (const phrase of PICKUP_PHRASES) {
+      let idx = 0;
+      while ((idx = norm.indexOf(phrase, idx)) >= 0) {
+        const window = norm.slice(idx, idx + 140);
+        if (terms.some((t) => t.length >= 3 && window.includes(t))) added.add(itemLabel);
+        idx += phrase.length;
+      }
+    }
+    for (const phrase of [...DROP_PHRASES, ...DEPOSIT_PHRASES]) {
+      let idx = 0;
+      while ((idx = norm.indexOf(phrase, idx)) >= 0) {
+        const window = norm.slice(idx, idx + 140);
+        if (terms.some((t) => t.length >= 3 && window.includes(t))) removed.add(itemLabel);
+        idx += phrase.length;
+      }
+    }
+  }
+
+  return { added: Array.from(added), removed: Array.from(removed) };
+}
+
 function matchItemsInText(
   text: string,
   itemMap: Map<string, string[]>,
@@ -407,8 +500,11 @@ export async function scanGameScreen(
   let inventorySlots: InventorySlotHighlight[] = [];
   let ocrDebugBoxes: OcrDebugBox[] = [];
 
+  let inventoryScanned = false;
+
   const invCapture = await captureRegion(gameInfo.bounds, 'inventory', calibration);
   if (invCapture) {
+    inventoryScanned = true;
     const invText = await ocrBuffer(invCapture.buffer);
     for (const item of matchItemsInText(invText, itemMap)) {
       inventoryItems.add(item);
@@ -427,17 +523,8 @@ export async function scanGameScreen(
     }
   }
 
-  // Chat withdraw detection (most reliable for bank → inventory)
-  for (const [itemLabel, terms] of itemMap) {
-    for (const term of terms) {
-      const withdrawn = WITHDRAW_PHRASES.some(
-        (p) => chatNorm.includes(p) && chatNorm.includes(term),
-      );
-      if (withdrawn) {
-        inventoryItems.add(itemLabel);
-      }
-    }
-  }
+  const chatEvents = parseChatInventoryEvents(chatText, itemMap);
+  for (const item of chatEvents.added) inventoryItems.add(item);
 
   // Items confirmed in inventory
   const detectedItems = Array.from(inventoryItems);
@@ -506,6 +593,9 @@ export async function scanGameScreen(
     ocrSnippet: chatText.slice(0, 200).trim(),
     bankOpen,
     bankScanned,
+    inventoryScanned,
+    chatItemsAdded: chatEvents.added,
+    chatItemsRemoved: chatEvents.removed,
     inventorySlots,
     ocrDebugBoxes,
     gameBounds: gameInfo.bounds,

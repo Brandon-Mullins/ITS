@@ -42,18 +42,14 @@ export function listIncludesItem(list: string[], itemLabel: string): boolean {
   return list.some((entry) => itemLabelMatches(entry, itemLabel));
 }
 
-/** Merge inventory, bank, and live OCR detections for quest item checks */
+/** True when item is in player inventory (live scan or persisted) — bank does NOT count */
 export function hasQuestItem(
   itemLabel: string,
   inv: string[],
-  bank: string[],
+  _bank: string[],
   detected: string[] = [],
 ): boolean {
-  return (
-    listIncludesItem(inv, itemLabel) ||
-    listIncludesItem(bank, itemLabel) ||
-    listIncludesItem(detected, itemLabel)
-  );
+  return listIncludesItem(inv, itemLabel) || listIncludesItem(detected, itemLabel);
 }
 
 export function itemReadySource(

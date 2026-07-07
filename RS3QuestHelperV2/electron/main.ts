@@ -11,7 +11,7 @@ import { fetchPlayerQuestsFromApi } from './player-api';
 import type { ScreenReaderConfig } from './screen-reader';
 
 const isDev = !app.isPackaged;
-export const APP_VERSION = 'v0.7.0-RASIAL-ROADMAP';
+export const APP_VERSION = 'v0.7.1-INV-LIVE';
 const DEV_PORT = 5174;
 
 let mainWindow: BrowserWindow | null = null;
@@ -19,7 +19,7 @@ let gameTracker: GameWindowTracker | null = null;
 let screenReaderTimer: ReturnType<typeof setInterval> | null = null;
 let screenReaderConfig: ScreenReaderConfig | null = null;
 
-const SCREEN_READER_INTERVAL_MS = 2000;
+const SCREEN_READER_INTERVAL_MS = 1500;
 
 function getDataDir(): string {
   return path.join(app.getPath('userData'), 'quest-data');

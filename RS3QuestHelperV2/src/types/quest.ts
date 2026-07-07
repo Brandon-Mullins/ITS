@@ -153,6 +153,9 @@ export interface ScreenReaderResult {
   ocrSnippet: string;
   bankOpen: boolean;
   bankScanned: boolean;
+  inventoryScanned?: boolean;
+  chatItemsAdded?: string[];
+  chatItemsRemoved?: string[];
   inventorySlots?: InventorySlotHighlight[];
   ocrDebugBoxes?: OcrDebugBox[];
   gameBounds?: { x: number; y: number; width: number; height: number } | null;

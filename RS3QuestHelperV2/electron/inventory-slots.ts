@@ -2,7 +2,7 @@
 
 export const INV_COLS = 4;
 export const INV_ROWS = 7;
-export const HIGHLIGHT_CONFIDENCE_MIN = 0.85;
+export const HIGHLIGHT_CONFIDENCE_MIN = 0.55;
 
 export interface InventoryCalibration {
   /** Fractions 0–1 relative to RS3 game window */

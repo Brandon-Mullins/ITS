@@ -21,6 +21,7 @@ import {
 } from './QuestGpsCards';
 import { buildClickTargetCards, inventoryHighlightItems, getClickTargets } from '../utils/click-targets';
 import { effectiveCollectedItems, itemLabelMatches } from '../utils/item-match';
+import { syncLiveInventory } from '../utils/live-inventory';
 import {
   buildConfidenceSignals,
   buildStepWarnings,
@@ -77,11 +78,23 @@ export default function QuestHelperPanel({
     }
     return merged;
   }, [scanResult]);
+
+  const liveInv = useMemo(
+    () => syncLiveInventory(
+      stepItems,
+      inv,
+      detected,
+      scanResult?.chatItemsAdded ?? [],
+      scanResult?.chatItemsRemoved ?? [],
+      bank,
+    ),
+    [stepItems, inv, detected, scanResult, bank],
+  );
   const isStepComplete = progress.completedSteps.includes(step.id);
 
   const effectiveInv = useMemo(
-    () => effectiveCollectedItems(inv, detected, stepItems),
-    [inv, detected, stepItems],
+    () => effectiveCollectedItems(liveInv, detected, stepItems),
+    [liveInv, detected, stepItems],
   );
 
   const effectiveProgress = useMemo(
@@ -169,12 +182,17 @@ export default function QuestHelperPanel({
             <>
               <GpsMissingItems
                 items={stepItems}
-                inv={inv}
+                inv={liveInv}
                 bank={bank}
                 detected={detected}
                 scanning={scanning}
                 onMarkItem={markItemObtained}
               />
+              {!scanResult?.gameBounds && (
+                <div className="gps-scan-warn">
+                  RS3 window not detected — open RuneScape so items can auto-scan from chat.
+                </div>
+              )}
               <GpsTeleportPanel travel={travelBrain} />
               <GpsHeroClickTarget cards={clickCards} />
               {useOnPairs.length > 0 && <UseOnHelper pairs={useOnPairs} />}

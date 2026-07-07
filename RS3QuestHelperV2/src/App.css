@@ -3132,6 +3132,24 @@
   background: rgba(60, 20, 20, 0.3);
 }
 
+.gps-item-bank {
+  border-color: rgba(220, 140, 60, 0.45);
+  background: rgba(60, 35, 15, 0.35);
+}
+
+.gps-item-bank .gps-item-status { color: #e8a050; }
+.gps-item-bank .gps-item-name { color: #e8c090; }
+
+.gps-scan-warn {
+  font-size: 10px;
+  color: #e8a060;
+  padding: 6px 8px;
+  border: 1px solid rgba(220, 140, 60, 0.35);
+  border-radius: 6px;
+  background: rgba(60, 40, 15, 0.25);
+  margin-bottom: 8px;
+}
+
 .gps-item-missing:hover {
   background: rgba(80, 30, 30, 0.45);
   border-color: rgba(220, 80, 80, 0.6);

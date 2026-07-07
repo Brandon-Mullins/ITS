@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { QuestGuide, QuestProgress, ScreenReaderResult, ProgressUpdater } from '../types/quest';
 import { itemLabelMatches } from '../utils/item-match';
+import { syncLiveInventory } from '../utils/live-inventory';
 
 function stepKeywordsFromStep(step: QuestGuide['steps'][0]): string[] {
   const checks = step.completionChecks;
@@ -53,13 +54,15 @@ export function useSmartDetect({
     const currentIndex = Math.min(progress.currentStepIndex, steps.length - 1);
     const currentStep = steps[currentIndex];
 
+    const trackedItems = [...new Set([
+      ...guide.metadata.items,
+      ...guide.metadata.recommended,
+      ...(currentStep?.stepItems ?? []),
+      ...(currentStep?.recommendedItems ?? []),
+    ])];
+
     window.electronAPI.screenReaderStart({
-      items: [...new Set([
-        ...guide.metadata.items,
-        ...guide.metadata.recommended,
-        ...(currentStep?.stepItems ?? []),
-        ...(currentStep?.recommendedItems ?? []),
-      ])],
+      items: trackedItems,
       currentStepText: currentStep?.text ?? '',
       stepKeywords: currentStep ? stepKeywordsFromStep(currentStep) : [],
       completionChecks: currentStep?.completionChecks,
@@ -71,23 +74,33 @@ export function useSmartDetect({
       const current = progressRef.current;
       if (!current || !guide) return;
 
+      const detected = [
+        ...result.detectedItems,
+        ...(result.inventorySlots ?? []).map((s) => s.item),
+      ];
+      const chatAdded = result.chatItemsAdded ?? [];
+      const chatRemoved = result.chatItemsRemoved ?? [];
+
       onProgressChange((latest) => {
         const updates: Partial<QuestProgress> = {};
-        let changed = false;
 
-        const collected = new Set(latest.collectedItems ?? []);
-        const toAdd = [
-          ...result.detectedItems,
-          ...(result.inventorySlots ?? []).map((s) => s.item),
-        ];
-        for (const item of toAdd) {
-          const already = [...collected].some((c) => itemLabelMatches(c, item));
-          if (!already) {
-            collected.add(item);
-            changed = true;
-          }
+        const nextCollected = syncLiveInventory(
+          trackedItems,
+          latest.collectedItems ?? [],
+          detected,
+          chatAdded,
+          chatRemoved,
+          result.bankItems ?? [],
+        );
+
+        const prevCollected = latest.collectedItems ?? [];
+        const collectedChanged =
+          nextCollected.length !== prevCollected.length ||
+          nextCollected.some((i) => !prevCollected.some((p) => itemLabelMatches(p, i)));
+
+        if (collectedChanged) {
+          updates.collectedItems = nextCollected;
         }
-        if (changed) updates.collectedItems = Array.from(collected);
 
         const bank = new Set(latest.bankItems ?? []);
         for (const item of result.bankItems) {
@@ -99,7 +112,9 @@ export function useSmartDetect({
 
         const needGe = new Set(result.needGeItems);
         for (const item of [...needGe]) {
-          if (collected.has(item) || bank.has(item)) needGe.delete(item);
+          if (nextCollected.some((c) => itemLabelMatches(c, item)) || bank.has(item)) {
+            needGe.delete(item);
+          }
         }
         if (needGe.size > 0 || (latest.needGeItems ?? []).length > 0) {
           updates.needGeItems = Array.from(needGe);

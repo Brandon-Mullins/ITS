@@ -23,9 +23,8 @@ export function GpsMissingItems({
   onMarkItem,
 }: GpsMissingItemsProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const missing = items.filter((i) => !hasQuestItem(i, inv, bank, detected));
-  const ready = items.length - missing.length;
-  const allReady = missing.length === 0;
+  const ready = items.filter((i) => itemReadySource(i, inv, bank, detected) === 'inventory').length;
+  const allReady = ready === items.length && items.length > 0;
 
   if (items.length === 0) return null;
 
@@ -45,8 +44,8 @@ export function GpsMissingItems({
           {allReady ? 'Required Items' : '❌ Missing Items'}
         </span>
         <span className={`gps-items-count ${allReady ? 'all-ready' : ''}`}>
-          {ready}/{items.length} ready
-          {scanning && ' · scanning…'}
+          {ready}/{items.length} in inventory
+          {scanning ? ' · scanning…' : ''}
         </span>
         {allReady && (
           <button type="button" className="gps-collapse-btn" onClick={() => setCollapsed(true)}>
@@ -57,22 +56,31 @@ export function GpsMissingItems({
       <ul className="gps-item-rows">
         {items.map((item) => {
           const status = itemReadySource(item, inv, bank, detected);
-          const isReady = status !== 'missing';
+          const isReady = status === 'inventory';
+          const inBank = status === 'bank';
           return (
             <li key={item}>
               <button
                 type="button"
-                className={`gps-item-row ${isReady ? 'gps-item-ready' : 'gps-item-missing'}`}
-                onClick={() => !isReady && onMarkItem?.(item)}
-                title={isReady ? 'Ready' : 'Click when you have this item'}
+                className={`gps-item-row ${
+                  isReady ? 'gps-item-ready' : inBank ? 'gps-item-bank' : 'gps-item-missing'
+                }`}
+                onClick={() => !isReady && !inBank && onMarkItem?.(item)}
+                title={
+                  isReady ? 'Detected in inventory' :
+                  inBank ? 'In bank — not in inventory' :
+                  'Waiting for scan…'
+                }
               >
                 <span className="gps-item-status" aria-hidden>
-                  {status === 'inventory' ? '✓' : status === 'bank' ? '◉' : '○'}
+                  {isReady ? '✓' : inBank ? '◉' : '○'}
                 </span>
                 <span className="gps-item-name">{extractItemName(item)}</span>
-                {status === 'bank' && <span className="gps-item-tag">bank</span>}
-                {status === 'inventory' && <span className="gps-item-tag ready">ready</span>}
-                {!isReady && <span className="gps-item-tap">tap when obtained</span>}
+                {inBank && <span className="gps-item-tag bank">in bank</span>}
+                {isReady && <span className="gps-item-tag ready">in inventory</span>}
+                {!isReady && !inBank && scanning && (
+                  <span className="gps-item-tap">scanning…</span>
+                )}
               </button>
             </li>
           );
