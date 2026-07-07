@@ -3150,6 +3150,12 @@
   margin-bottom: 8px;
 }
 
+.gps-scan-pending {
+  color: #90c8e8;
+  border-color: rgba(80, 140, 200, 0.35);
+  background: rgba(20, 40, 60, 0.25);
+}
+
 .gps-item-missing:hover {
   background: rgba(80, 30, 30, 0.45);
   border-color: rgba(220, 80, 80, 0.6);

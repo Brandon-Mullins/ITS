@@ -6,12 +6,12 @@ import { renderHighlightPlan, clearGameHighlights, syncHighlightToGame } from '.
 import { buildHighlightPlan } from './highlight-engine';
 import type { HighlightConfig } from './highlight-engine';
 import { openCalibrationOverlay, resolveCalibration, closeCalibrationOverlay } from './calibration-overlay';
-import { scanGameScreen, disposeScreenReader, extractStepKeywords, resetBankScanCache } from './screen-reader';
+import { scanGameScreen, disposeScreenReader, extractStepKeywords, resetBankScanCache, createEmptyScanResult } from './screen-reader';
 import { fetchPlayerQuestsFromApi } from './player-api';
 import type { ScreenReaderConfig } from './screen-reader';
 
 const isDev = !app.isPackaged;
-export const APP_VERSION = 'v0.7.2-INV-FIX';
+export const APP_VERSION = 'v0.7.3-GAME-FIX';
 const DEV_PORT = 5174;
 
 let mainWindow: BrowserWindow | null = null;
@@ -91,16 +91,24 @@ function startScreenReader(config: ScreenReaderConfig): void {
 
   const runScan = async () => {
     if (!mainWindow || mainWindow.isDestroyed() || !screenReaderConfig) return;
-    const gameInfo = gameTracker?.getLastGameInfo() ?? await findGameWindow();
-    if (!gameInfo.found) return;
+
+    const cached = gameTracker?.getLastGameInfo();
+    const gameInfo = cached?.found ? cached : await findGameWindow();
+
+    if (!gameInfo.found || !gameInfo.bounds) {
+      mainWindow.webContents.send('screen-reader:result', createEmptyScanResult(null));
+      return;
+    }
 
     try {
       const result = await scanGameScreen(gameInfo, screenReaderConfig);
-      if (result && !mainWindow.isDestroyed()) {
+      if (!mainWindow.isDestroyed()) {
         mainWindow.webContents.send('screen-reader:result', result);
       }
     } catch {
-      // OCR failures are non-fatal
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('screen-reader:result', createEmptyScanResult(gameInfo.bounds));
+      }
     }
   };
 
@@ -191,7 +199,7 @@ ipcMain.handle('game:find', async () => {
 
 ipcMain.handle('game:attach', async () => {
   if (!gameTracker) return { attached: false };
-  gameTracker.attach();
+  await gameTracker.attach();
   return { attached: true, game: gameTracker.getLastGameInfo() };
 });
 

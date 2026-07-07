@@ -30,7 +30,7 @@ import LayoutTestScreen from './components/LayoutTestScreen';
 import './App.css';
 
 export const V2_BUILD_ID = 'RS3QuestHelperV2';
-export const V2_VERSION = 'v0.7.2-INV-FIX';
+export const V2_VERSION = 'v0.7.3-GAME-FIX';
 
 type AppView = 'search' | 'guide' | 'goals' | 'editor' | 'why' | 'settings' | 'layout-test';
 
@@ -310,6 +310,7 @@ export default function App() {
               playerData={playerData}
               uiMode={settings.uiMode}
               isAttached={isAttached}
+              gameInfo={gameInfo}
               highlightSettings={settings}
               onHighlightSettingsChange={handleSettingsChange}
               onBack={() => { setView('search'); setGuide(null); }}

@@ -21,18 +21,25 @@ export interface GameWindowInfo {
   hwnd: number | null;
 }
 
-const RS3_TITLE_PATTERNS = [/runescape/i, /jagex.*nxt/i];
+const RS3_TITLE_PATTERNS = [
+  /runescape/i,
+  /jagex.*nxt/i,
+  /\brs3\b/i,
+  /^nxt\b/i,
+];
 const EXCLUDE_PATTERNS = [
   /quest helper/i,
   /devtools/i,
   /visual studio/i,
   /cursor/i,
   /jagex launcher/i,
-  /launcher/i,
+  /\blauncher\b/i,
   /chrome/i,
   /firefox/i,
   /edge/i,
   /brave/i,
+  /old school runescape/i,
+  /\bosrs\b/i,
 ];
 
 const POWERSHELL_SCRIPT = `
@@ -128,7 +135,7 @@ async function scanWindows(): Promise<WindowScanResult> {
       const processId = parseInt(parts[5], 10);
       const hwnd = parseInt(parts[6], 10);
 
-      if (width < 640 || height < 480) continue;
+      if (width < 400 || height < 300) continue;
 
       candidates.push({
         found: true,
@@ -202,8 +209,8 @@ export class GameWindowTracker {
     return this.lastGameInfo;
   }
 
-  attach(): void {
-    if (this.attached) return;
+  attach(): Promise<void> {
+    if (this.attached) return Promise.resolve();
 
     const current = this.overlayWindow.getBounds();
     this.savedBounds = {
@@ -217,6 +224,7 @@ export class GameWindowTracker {
     this.hiddenForFocus = false;
     void this.poll();
     this.pollTimer = setInterval(() => void this.poll(), ATTACH_POLL_MS);
+    return this.poll();
   }
 
   detach(): void {

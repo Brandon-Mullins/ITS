@@ -30,12 +30,17 @@ export function useGameAttach(settings: AppSettings, onSettingsChange: (u: Parti
 
     await window.electronAPI.gameAttach();
     onSettingsChange({ attachToGame: true });
-    setGameInfo(info);
+    const status = await window.electronAPI.gameStatus();
+    setGameInfo(status.game ?? info);
   }, [settings.attachToGame, onSettingsChange]);
 
   useEffect(() => {
-    if (!settings.attachToGame) return;
-    const interval = setInterval(refreshGameInfo, 2000);
+    if (!settings.attachToGame) {
+      setGameInfo(null);
+      return;
+    }
+    void refreshGameInfo();
+    const interval = setInterval(() => void refreshGameInfo(), 2000);
     return () => clearInterval(interval);
   }, [settings.attachToGame, refreshGameInfo]);
 

@@ -1,4 +1,4 @@
-import type { QuestGuide, QuestProgress, ProgressUpdater } from '../types/quest';
+import type { QuestGuide, QuestProgress, ProgressUpdater, GameWindowInfo } from '../types/quest';
 import type { PlayerQuestData } from '../utils/quest-match';
 import { QuestHelperPanelWithDetect } from './QuestHelperPanel';
 
@@ -10,6 +10,7 @@ interface QuestGuideViewProps {
   playerData?: PlayerQuestData | null;
   uiMode?: 'newbie' | 'veteran' | 'standard';
   isAttached?: boolean;
+  gameInfo?: GameWindowInfo | null;
   highlightSettings?: import('../types/quest').AppSettings;
   onHighlightSettingsChange?: (updates: Partial<import('../types/quest').AppSettings>) => void;
   onBack: () => void;
@@ -25,6 +26,7 @@ export default function QuestGuideView({
   playerData = null,
   uiMode = 'standard',
   isAttached,
+  gameInfo,
   highlightSettings,
   onHighlightSettingsChange,
   onBack,
@@ -48,6 +50,7 @@ export default function QuestGuideView({
       playerData={playerData}
       uiMode={uiMode}
       isAttached={isAttached}
+      gameInfo={gameInfo}
       onBack={onBack}
       onRefresh={onRefresh}
       onProgressChange={onProgressChange}

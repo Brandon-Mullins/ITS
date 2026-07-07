@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import type { QuestGuide, QuestProgress, ScreenReaderResult, AppSettings, ProgressUpdater } from '../types/quest';
+import type { QuestGuide, QuestProgress, ScreenReaderResult, AppSettings, ProgressUpdater, GameWindowInfo } from '../types/quest';
 import type { PlayerQuestData } from '../utils/quest-match';
 import { openWikiUrl } from '../services/storage';
 import { useSmartDetect } from '../hooks/useSmartDetect';
@@ -42,6 +42,7 @@ interface QuestHelperPanelProps {
   isAttached?: boolean;
   scanResult?: ScreenReaderResult | null;
   scanning?: boolean;
+  gameInfo?: GameWindowInfo | null;
   debugOpen?: boolean;
   onDebugToggle?: () => void;
   highlightSettings?: AppSettings;
@@ -57,6 +58,7 @@ export default function QuestHelperPanel({
   isAttached,
   scanResult = null,
   scanning = false,
+  gameInfo = null,
   debugOpen = false,
   onDebugToggle,
   highlightSettings,
@@ -114,6 +116,10 @@ export default function QuestHelperPanel({
       currentStepIndex: next > currentIndex ? next : currentIndex,
     });
   };
+
+  const gameDetected = Boolean(
+    (gameInfo?.found && gameInfo.bounds) || scanResult?.gameBounds,
+  );
 
   const clickCards = buildClickTargetCards(step, effectiveProgress, guide.itemBrain);
   const clickTargetItems = inventoryHighlightItems(getClickTargets(step));
@@ -176,9 +182,14 @@ export default function QuestHelperPanel({
                 scanning={scanning}
                 onMarkItem={markItemObtained}
               />
-              {!scanResult?.gameBounds && (
+              {!gameDetected && (
                 <div className="gps-scan-warn">
-                  RS3 window not detected — open RuneScape so items can auto-scan from chat.
+                  RS3 window not detected — open RuneScape, then tap 🔗 Attach in the title bar.
+                </div>
+              )}
+              {gameDetected && !scanResult?.inventoryScanned && (
+                <div className="gps-scan-warn gps-scan-pending">
+                  Scanning inventory… keep RS3 visible on screen.
                 </div>
               )}
               <GpsTeleportPanel travel={travelBrain} />
@@ -241,6 +252,7 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps & {
   onHighlightSettingsChange?: (updates: Partial<AppSettings>) => void;
   onCalibrateInventory?: () => void;
   calibrating?: boolean;
+  gameInfo?: GameWindowInfo | null;
 }) {
   const [scanResult, setScanResult] = useState<ScreenReaderResult | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -269,7 +281,17 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps & {
   const stepItems = (step.stepItems?.length ?? 0) > 0 ? step.stepItems : props.guide.metadata.items;
 
   useEffect(() => {
-    setScanResult(null);
+    setScanResult((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        detectedItems: [],
+        inventorySlots: [],
+        chatItemsAdded: [],
+        chatItemsRemoved: [],
+        inventoryScanned: false,
+      };
+    });
     setScanning(false);
   }, [props.guide.metadata.pageName, currentIndex]);
 
@@ -297,6 +319,7 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps & {
   return (
     <QuestHelperPanel
       {...props}
+      gameInfo={props.gameInfo}
       scanResult={scanResult}
       scanning={scanning}
       debugOpen={debugOpen}

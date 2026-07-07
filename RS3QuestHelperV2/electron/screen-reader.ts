@@ -1,5 +1,6 @@
 import screenshot from 'screenshot-desktop';
 import sharp from 'sharp';
+import { screen } from 'electron';
 import { createWorker, type Worker } from 'tesseract.js';
 import type { GameWindowInfo } from './game-window';
 import {
@@ -57,6 +58,35 @@ let worker: Worker | null = null;
 let workerInit: Promise<Worker> | null = null;
 let lastBankScanItems = new Set<string>();
 let bankEverScanned = false;
+
+function virtualScreenOrigin(): { minX: number; minY: number } {
+  const displays = screen.getAllDisplays();
+  return {
+    minX: Math.min(...displays.map((d) => d.bounds.x)),
+    minY: Math.min(...displays.map((d) => d.bounds.y)),
+  };
+}
+
+export function createEmptyScanResult(
+  gameBounds: ScreenReaderResult['gameBounds'] = null,
+): ScreenReaderResult {
+  return {
+    timestamp: new Date().toISOString(),
+    detectedItems: [],
+    bankItems: [],
+    needGeItems: [],
+    suggestStepComplete: false,
+    ocrSnippet: '',
+    bankOpen: false,
+    bankScanned: false,
+    inventoryScanned: false,
+    chatItemsAdded: [],
+    chatItemsRemoved: [],
+    inventorySlots: [],
+    ocrDebugBoxes: [],
+    gameBounds,
+  };
+}
 
 async function getWorker(): Promise<Worker> {
   if (worker) return worker;
@@ -228,12 +258,24 @@ async function captureRegion(
 
   try {
     const fullScreen = await screenshot({ format: 'png' });
+    const meta = await sharp(fullScreen).metadata();
+    const imgW = meta.width ?? 0;
+    const imgH = meta.height ?? 0;
+    if (imgW < 64 || imgH < 64) return null;
+
+    const { minX, minY } = virtualScreenOrigin();
     let crop = {
-      left: Math.max(0, bounds.x),
-      top: Math.max(0, bounds.y),
+      left: bounds.x - minX,
+      top: bounds.y - minY,
       width: bounds.width,
       height: bounds.height,
     };
+
+    crop.left = Math.max(0, Math.min(crop.left, imgW - 1));
+    crop.top = Math.max(0, Math.min(crop.top, imgH - 1));
+    crop.width = Math.min(crop.width, imgW - crop.left);
+    crop.height = Math.min(crop.height, imgH - crop.top);
+    if (crop.width < 64 || crop.height < 64) return null;
 
     switch (region) {
       case 'chat':
@@ -472,8 +514,12 @@ function matchItemsInText(
 export async function scanGameScreen(
   gameInfo: GameWindowInfo,
   config: ScreenReaderConfig,
-): Promise<ScreenReaderResult | null> {
-  if (!gameInfo.found || !gameInfo.bounds) return null;
+): Promise<ScreenReaderResult> {
+  if (!gameInfo.found || !gameInfo.bounds) {
+    return createEmptyScanResult(null);
+  }
+
+  const gameBounds = gameInfo.bounds;
 
   const itemMap = buildItemSearchMap(config.items);
   const inventoryItems = new Set<string>();
@@ -485,7 +531,9 @@ export async function scanGameScreen(
     captureRegion(gameInfo.bounds, 'chat', calibration),
   ]);
 
-  if (!fullCapture) return null;
+  if (!fullCapture) {
+    return createEmptyScanResult(gameBounds);
+  }
 
   const fullText = await ocrBuffer(fullCapture.buffer);
   const chatText = chatCapture ? await ocrBuffer(chatCapture.buffer) : '';
