@@ -118,7 +118,7 @@ export default function QuestHelperPanel({
   };
 
   const gameDetected = Boolean(
-    (gameInfo?.found && gameInfo.bounds) || scanResult?.gameBounds,
+    isAttached || (gameInfo?.found && gameInfo.bounds) || scanResult?.gameBounds,
   );
 
   const clickCards = buildClickTargetCards(step, effectiveProgress, guide.itemBrain);
@@ -182,12 +182,12 @@ export default function QuestHelperPanel({
                 scanning={scanning}
                 onMarkItem={markItemObtained}
               />
-              {!gameDetected && (
+              {!isAttached && !gameDetected && (
                 <div className="gps-scan-warn">
                   RS3 window not detected — open RuneScape, then tap 🔗 Attach in the title bar.
                 </div>
               )}
-              {gameDetected && !scanResult?.inventoryScanned && (
+              {isAttached && scanResult && !scanResult.inventoryScanned && (
                 <div className="gps-scan-warn gps-scan-pending">
                   Scanning inventory… keep RS3 visible on screen.
                 </div>

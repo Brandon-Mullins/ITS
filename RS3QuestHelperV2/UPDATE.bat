@@ -15,7 +15,7 @@ timeout /t 2 /nobreak >nul
 if exist RS3QuestHelperV2-tmp rmdir /s /q RS3QuestHelperV2-tmp
 if exist RS3QuestHelperV2 rmdir /s /q RS3QuestHelperV2
 
-git clone --branch cursor/rasial-roadmap-1b6e --single-branch https://github.com/Brandon-Mullins/ITS.git RS3QuestHelperV2-tmp
+git clone --branch cursor/inv-fix-1b6e --single-branch https://github.com/Brandon-Mullins/ITS.git RS3QuestHelperV2-tmp
 if errorlevel 1 goto :failed
 
 move RS3QuestHelperV2-tmp\RS3QuestHelperV2 RS3QuestHelperV2

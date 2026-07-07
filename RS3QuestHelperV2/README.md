@@ -45,7 +45,7 @@ npm run electron:fix
 
 ## Verify version
 
-Footer should match `package.json` version (currently **v0.7.3-GAME-FIX**).
+Footer should match `package.json` version (currently **v0.7.4-ATTACH-FIX**).
 
 ```powershell
 cd C:\Users\bmull\RS3QuestHelperV2
