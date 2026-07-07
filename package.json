@@ -1,0 +1,63 @@
+{
+  "name": "rs3-quest-helper-overlay",
+  "version": "0.6.4",
+  "description": "RS3 Quest Helper Overlay — step-by-step quest guides powered by the RuneScape Wiki",
+  "main": "dist-electron/main.js",
+  "author": "RS3 Quest Helper",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && tsc -p tsconfig.electron.json",
+    "preview": "vite preview",
+    "electron:dev": "vite",
+    "electron:fix": "powershell -ExecutionPolicy Bypass -File fix-electron.ps1",
+    "postinstall": "node -e \"try{require('fs').accessSync('node_modules/electron/dist/electron.exe')}catch(e){console.log('\\n⚠ Electron binary missing. Run: npm run electron:fix\\n')}\"",
+    "electron:build": "npm run build && electron-builder --win",
+    "seed": "tsx scripts/seed-quests.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "screenshot-desktop": "^1.15.4",
+    "sharp": "^0.35.3",
+    "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.1.2",
+    "electron": "^35.1.5",
+    "electron-builder": "^26.0.12",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.3",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.rs3questhelper.overlay",
+    "productName": "RS3 Quest Helper",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "data/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "public/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
