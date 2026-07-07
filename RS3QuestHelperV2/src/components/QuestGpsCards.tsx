@@ -7,7 +7,7 @@ import type { ItemBrain } from '../types/quest-data';
 
 interface GpsMissingItemsProps {
   items: string[];
-  inv: string[];
+  manualMarks: string[];
   bank: string[];
   detected?: string[];
   scanning?: boolean;
@@ -16,14 +16,14 @@ interface GpsMissingItemsProps {
 
 export function GpsMissingItems({
   items,
-  inv,
+  manualMarks,
   bank,
   detected = [],
   scanning,
   onMarkItem,
 }: GpsMissingItemsProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const ready = items.filter((i) => itemReadySource(i, inv, bank, detected) === 'inventory').length;
+  const ready = items.filter((i) => itemReadySource(i, bank, detected, manualMarks) === 'inventory').length;
   const allReady = ready === items.length && items.length > 0;
 
   if (items.length === 0) return null;
@@ -55,7 +55,7 @@ export function GpsMissingItems({
       </div>
       <ul className="gps-item-rows">
         {items.map((item) => {
-          const status = itemReadySource(item, inv, bank, detected);
+          const status = itemReadySource(item, bank, detected, manualMarks);
           const isReady = status === 'inventory';
           const inBank = status === 'bank';
           return (
@@ -154,15 +154,16 @@ export function GpsTips({ tips }: GpsTipsProps) {
 export function buildStepTips(
   itemBrain: ItemBrain | undefined,
   stepItems: string[],
-  inv: string[],
+  bank: string[],
   detected: string[] = [],
+  manualMarks: string[] = [],
 ): string[] {
   const tips: string[] = [];
   if (!itemBrain) return tips;
 
   for (const item of stepItems) {
     const name = extractItemName(item);
-    if (!hasQuestItem(item, inv, [], detected)) {
+    if (!hasQuestItem(item, bank, detected, manualMarks)) {
       tips.push(`Need ${name}.`);
     }
     if (itemBrain.consumed?.some((c) => c.toLowerCase().includes(name.toLowerCase()))) {

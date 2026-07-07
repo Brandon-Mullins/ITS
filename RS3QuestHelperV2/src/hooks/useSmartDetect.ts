@@ -84,23 +84,15 @@ export function useSmartDetect({
       onProgressChange((latest) => {
         const updates: Partial<QuestProgress> = {};
 
-        const nextCollected = syncLiveInventory(
+        const manualMarks = latest.manuallyMarkedItems ?? [];
+        const liveInv = syncLiveInventory(
           trackedItems,
-          latest.collectedItems ?? [],
           detected,
           chatAdded,
           chatRemoved,
           result.bankItems ?? [],
+          manualMarks,
         );
-
-        const prevCollected = latest.collectedItems ?? [];
-        const collectedChanged =
-          nextCollected.length !== prevCollected.length ||
-          nextCollected.some((i) => !prevCollected.some((p) => itemLabelMatches(p, i)));
-
-        if (collectedChanged) {
-          updates.collectedItems = nextCollected;
-        }
 
         const bank = new Set(latest.bankItems ?? []);
         for (const item of result.bankItems) {
@@ -112,7 +104,7 @@ export function useSmartDetect({
 
         const needGe = new Set(result.needGeItems);
         for (const item of [...needGe]) {
-          if (nextCollected.some((c) => itemLabelMatches(c, item)) || bank.has(item)) {
+          if (liveInv.some((c) => itemLabelMatches(c, item)) || bank.has(item)) {
             needGe.delete(item);
           }
         }

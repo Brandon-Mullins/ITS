@@ -74,16 +74,31 @@ function normalize(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+const OCR_STOP_WORDS = new Set([
+  'the', 'and', 'for', 'you', 'your', 'from', 'with', 'have', 'that', 'this',
+  'food', 'logs', 'log', 'rope', 'coin', 'coins', 'gold', 'key', 'keys',
+  'bar', 'bars', 'vial', 'water', 'item', 'items', 'use', 'get', 'one', 'two',
+  'red', 'blue', 'new', 'old', 'big', 'small', 'some', 'any', 'all',
+]);
+
+function isReliableItemTerm(term: string): boolean {
+  const t = term.toLowerCase().trim();
+  if (t.length < 4) return false;
+  if (OCR_STOP_WORDS.has(t)) return false;
+  return true;
+}
+
 function parseItemSearchTerms(itemLabel: string): string[] {
   const base = itemLabel.replace(/\([^)]*\)/g, '').trim();
   const terms = new Set<string>();
 
   const parts = /\bor\b/i.test(base) ? base.split(/\bor\b/i).map((s) => s.trim()) : [base];
   for (const part of parts) {
-    if (part.length >= 3) terms.add(normalize(part));
+    const full = normalize(part);
+    if (isReliableItemTerm(full)) terms.add(full);
     for (const word of part.split(/\s+/)) {
       const w = normalize(word);
-      if (w.length >= 3) terms.add(w);
+      if (isReliableItemTerm(w)) terms.add(w);
     }
   }
   return Array.from(terms);
@@ -273,9 +288,10 @@ async function ocrBuffer(buffer: Buffer): Promise<string> {
 }
 
 function termMatchesWord(term: string, word: string): boolean {
+  if (!isReliableItemTerm(term)) return false;
   const t = normalize(term);
   const w = normalize(word);
-  if (t.length < 3 || w.length < 3) return false;
+  if (w.length < 4) return false;
   return w.includes(t) || t.includes(w);
 }
 
@@ -380,7 +396,7 @@ function matchItemInBlob(
   terms: string[],
 ): boolean {
   for (const term of terms) {
-    if (term.length >= 3 && blob.includes(term)) return true;
+    if (isReliableItemTerm(term) && blob.includes(term)) return true;
   }
   return false;
 }
@@ -419,7 +435,7 @@ export function parseChatInventoryEvents(
       let idx = 0;
       while ((idx = norm.indexOf(phrase, idx)) >= 0) {
         const window = norm.slice(idx, idx + 140);
-        if (terms.some((t) => t.length >= 3 && window.includes(t))) added.add(itemLabel);
+        if (terms.some((t) => isReliableItemTerm(t) && window.includes(t))) added.add(itemLabel);
         idx += phrase.length;
       }
     }
@@ -427,7 +443,7 @@ export function parseChatInventoryEvents(
       let idx = 0;
       while ((idx = norm.indexOf(phrase, idx)) >= 0) {
         const window = norm.slice(idx, idx + 140);
-        if (terms.some((t) => t.length >= 3 && window.includes(t))) removed.add(itemLabel);
+        if (terms.some((t) => isReliableItemTerm(t) && window.includes(t))) removed.add(itemLabel);
         idx += phrase.length;
       }
     }
@@ -444,7 +460,7 @@ function matchItemsInText(
   const found: string[] = [];
   for (const [itemLabel, terms] of itemMap) {
     for (const term of terms) {
-      if (term.length >= 3 && norm.includes(term)) {
+      if (isReliableItemTerm(term) && norm.includes(term)) {
         found.push(itemLabel);
         break;
       }
@@ -505,10 +521,6 @@ export async function scanGameScreen(
   const invCapture = await captureRegion(gameInfo.bounds, 'inventory', calibration);
   if (invCapture) {
     inventoryScanned = true;
-    const invText = await ocrBuffer(invCapture.buffer);
-    for (const item of matchItemsInText(invText, itemMap)) {
-      inventoryItems.add(item);
-    }
     const slotResult = await detectInventorySlots(
       invCapture,
       gameInfo.bounds,

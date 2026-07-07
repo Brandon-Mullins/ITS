@@ -24,14 +24,15 @@ export function itemLabelMatches(haystack: string, needleLabel: string): boolean
   const n = normalizeItemKey(needleLabel);
   if (!h || !n) return false;
   if (h === n) return true;
-  if (h.includes(n) || n.includes(h)) return true;
+  if (h.length >= 4 && n.length >= 4 && (h.includes(n) || n.includes(h))) return true;
 
   for (const alt of itemAlternatives(needleLabel)) {
     const a = normalizeItemKey(alt);
-    if (h === a || h.includes(a) || a.includes(h)) return true;
+    if (h === a) return true;
+    if (h.length >= 4 && a.length >= 4 && (h.includes(a) || a.includes(h))) return true;
     const hWords = h.split(' ');
-    const aWords = a.split(' ');
-    if (aWords.every((w) => hWords.some((hw) => hw === w || hw.includes(w) || w.includes(hw)))) {
+    const aWords = a.split(' ').filter((w) => w.length >= 3);
+    if (aWords.length >= 2 && aWords.every((w) => hWords.some((hw) => hw === w || (hw.length >= 4 && w.length >= 4 && (hw.includes(w) || w.includes(hw)))))) {
       return true;
     }
   }
@@ -42,41 +43,44 @@ export function listIncludesItem(list: string[], itemLabel: string): boolean {
   return list.some((entry) => itemLabelMatches(entry, itemLabel));
 }
 
-/** True when item is in player inventory (live scan or persisted) — bank does NOT count */
-export function hasQuestItem(
-  itemLabel: string,
-  inv: string[],
-  _bank: string[],
-  detected: string[] = [],
-): boolean {
-  return listIncludesItem(inv, itemLabel) || listIncludesItem(detected, itemLabel);
-}
-
+/** Green = live scan or manual mark this session — NOT stale saved progress */
 export function itemReadySource(
   itemLabel: string,
-  inv: string[],
   bank: string[],
-  detected: string[] = [],
+  detected: string[],
+  manualMarks: string[] = [],
 ): 'inventory' | 'bank' | 'missing' {
-  if (listIncludesItem(inv, itemLabel) || listIncludesItem(detected, itemLabel)) return 'inventory';
+  if (listIncludesItem(detected, itemLabel)) return 'inventory';
+  if (listIncludesItem(manualMarks, itemLabel)) return 'inventory';
   if (listIncludesItem(bank, itemLabel)) return 'bank';
   return 'missing';
 }
 
-/** Build deduped collected list including live OCR hits mapped to quest labels */
+export function hasQuestItem(
+  itemLabel: string,
+  bank: string[],
+  detected: string[] = [],
+  manualMarks: string[] = [],
+): boolean {
+  return itemReadySource(itemLabel, bank, detected, manualMarks) === 'inventory';
+}
+
+/** Build list for click-target cards from live scan + manual marks */
 export function effectiveCollectedItems(
-  inv: string[],
+  manualMarks: string[],
   detected: string[],
   questItems: string[],
 ): string[] {
-  const out = [...inv];
+  const out = new Set<string>();
+  for (const m of manualMarks) out.add(m);
   for (const det of detected) {
-    if (!out.some((e) => itemLabelMatches(e, det))) out.push(det);
+    out.add(det);
     for (const qi of questItems) {
-      if (itemLabelMatches(det, qi) && !out.some((e) => itemLabelMatches(e, qi))) {
-        out.push(qi);
-      }
+      if (itemLabelMatches(det, qi)) out.add(qi);
     }
   }
-  return out;
+  for (const qi of questItems) {
+    if (listIncludesItem(detected, qi) || listIncludesItem(manualMarks, qi)) out.add(qi);
+  }
+  return Array.from(out);
 }

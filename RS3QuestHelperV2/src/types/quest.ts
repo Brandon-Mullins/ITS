@@ -70,6 +70,8 @@ export interface QuestProgress {
   collectedItems: string[];
   bankItems: string[];
   needGeItems: string[];
+  /** User tapped "I have this" — only manual marks persist across scans */
+  manuallyMarkedItems?: string[];
   lastUpdated: string;
 }
 

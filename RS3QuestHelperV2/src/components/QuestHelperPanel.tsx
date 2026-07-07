@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { QuestGuide, QuestProgress, ScreenReaderResult, AppSettings, ProgressUpdater } from '../types/quest';
 import type { PlayerQuestData } from '../utils/quest-match';
 import { openWikiUrl } from '../services/storage';
@@ -21,7 +21,6 @@ import {
 } from './QuestGpsCards';
 import { buildClickTargetCards, inventoryHighlightItems, getClickTargets } from '../utils/click-targets';
 import { effectiveCollectedItems, itemLabelMatches } from '../utils/item-match';
-import { syncLiveInventory } from '../utils/live-inventory';
 import {
   buildConfidenceSignals,
   buildStepWarnings,
@@ -66,7 +65,7 @@ export default function QuestHelperPanel({
   const currentIndex = Math.min(progress.currentStepIndex, Math.max(0, steps.length - 1));
   const step = steps[currentIndex];
   const stepItems = (step.stepItems?.length ?? 0) > 0 ? step.stepItems : metadata.items;
-  const inv = progress.collectedItems ?? [];
+  const manualMarks = progress.manuallyMarkedItems ?? [];
   const bank = progress.bankItems ?? [];
   const ge = progress.needGeItems ?? [];
   const detected = useMemo(() => {
@@ -79,22 +78,11 @@ export default function QuestHelperPanel({
     return merged;
   }, [scanResult]);
 
-  const liveInv = useMemo(
-    () => syncLiveInventory(
-      stepItems,
-      inv,
-      detected,
-      scanResult?.chatItemsAdded ?? [],
-      scanResult?.chatItemsRemoved ?? [],
-      bank,
-    ),
-    [stepItems, inv, detected, scanResult, bank],
-  );
   const isStepComplete = progress.completedSteps.includes(step.id);
 
   const effectiveInv = useMemo(
-    () => effectiveCollectedItems(liveInv, detected, stepItems),
-    [liveInv, detected, stepItems],
+    () => effectiveCollectedItems(manualMarks, detected, stepItems),
+    [manualMarks, detected, stepItems],
   );
 
   const effectiveProgress = useMemo(
@@ -104,9 +92,9 @@ export default function QuestHelperPanel({
 
   const markItemObtained = (item: string) => {
     onProgressChange((prev) => {
-      const current = prev.collectedItems ?? [];
+      const current = prev.manuallyMarkedItems ?? [];
       if (current.some((e) => itemLabelMatches(e, item))) return {};
-      return { collectedItems: [...current, item] };
+      return { manuallyMarkedItems: [...current, item] };
     });
   };
 
@@ -134,7 +122,7 @@ export default function QuestHelperPanel({
   const warnings = buildStepWarnings(step, guide, effectiveProgress, clickCards);
   const debugInfo = buildStepDebugInfo(guide, progress, scanResult);
   const dialogueNext = getDialogueNextIndex(step.dialogueChoices ?? [], scanResult?.ocrSnippet ?? '');
-  const tips = buildStepTips(guide.itemBrain, stepItems, inv, detected);
+  const tips = buildStepTips(guide.itemBrain, stepItems, bank, detected, manualMarks);
 
   const confComplete = confidence.filter((s) => s.status === 'detected').length;
   const confAllGood = confidence.every((s) => s.status === 'detected' || s.status === 'unknown');
@@ -182,7 +170,7 @@ export default function QuestHelperPanel({
             <>
               <GpsMissingItems
                 items={stepItems}
-                inv={liveInv}
+                manualMarks={manualMarks}
                 bank={bank}
                 detected={detected}
                 scanning={scanning}
@@ -213,7 +201,7 @@ export default function QuestHelperPanel({
                 <MarkerPlaceholders step={step} />
                 <ItemShoppingList
                   pageName={metadata.pageName}
-                  collectedItems={inv}
+                  collectedItems={effectiveInv}
                   bankItems={bank}
                   needGeItems={ge}
                   clickTargetItems={clickTargetItems}
@@ -280,13 +268,18 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps & {
   const step = props.guide.steps[currentIndex];
   const stepItems = (step.stepItems?.length ?? 0) > 0 ? step.stepItems : props.guide.metadata.items;
 
+  useEffect(() => {
+    setScanResult(null);
+    setScanning(false);
+  }, [props.guide.metadata.pageName, currentIndex]);
+
   const highlightProgress = useMemo(() => {
     const detected = [
       ...(scanResult?.detectedItems ?? []),
       ...(scanResult?.inventorySlots ?? []).map((s) => s.item),
     ];
     const effectiveInv = effectiveCollectedItems(
-      props.progress.collectedItems ?? [],
+      props.progress.manuallyMarkedItems ?? [],
       detected,
       stepItems,
     );
