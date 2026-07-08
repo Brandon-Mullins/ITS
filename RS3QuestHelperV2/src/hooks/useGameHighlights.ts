@@ -6,6 +6,8 @@ import {
   inventoryHighlightItems,
 } from '../utils/click-targets';
 import { getDialogueNextIndex, getUseOnPairs } from '../utils/step-analysis';
+import { buildNpcNavigation, minimapMarkerPosition } from '../utils/npc-navigation';
+import { resolveTravelBrain } from '../services/travel-brain';
 
 interface UseGameHighlightsOptions {
   step: QuestStep | null;
@@ -13,6 +15,7 @@ interface UseGameHighlightsOptions {
   scanResult?: ScreenReaderResult | null;
   settings?: AppSettings;
   enabled?: boolean;
+  travelBrain?: ReturnType<typeof resolveTravelBrain> | null;
 }
 
 /** Push click targets to Electron game overlay — safe UI-only by default (v0.6.4) */
@@ -22,6 +25,7 @@ export function useGameHighlights({
   scanResult,
   settings,
   enabled = true,
+  travelBrain = null,
 }: UseGameHighlightsOptions) {
   const mode = settings?.highlightMode ?? 'ui-only';
   const debugOverlay = settings?.debugOverlay ?? false;
@@ -45,6 +49,9 @@ export function useGameHighlights({
     const dialogueIdx = getDialogueNextIndex(step.dialogueChoices ?? [], scanResult?.ocrSnippet ?? '');
     const dialogueNext = step.dialogueChoices?.[dialogueIdx];
 
+    const npcNav = travelBrain ? buildNpcNavigation(step, travelBrain) : null;
+    const minimap = npcNav ? minimapMarkerPosition(npcNav.compassAngle) : null;
+
     window.electronAPI.updateHighlights({
       mode,
       debugOverlay,
@@ -61,10 +68,18 @@ export function useGameHighlights({
       inventorySlots: scanResult?.inventorySlots ?? [],
       inventoryCalibration: calibration,
       ocrDebugBoxes: scanResult?.ocrDebugBoxes ?? [],
+      navigation: npcNav && minimap ? {
+        npcName: npcNav.npcName,
+        compassLabel: npcNav.compassLabel,
+        compassAngle: npcNav.compassAngle,
+        landmark: npcNav.landmark,
+        minimapX: minimap.x,
+        minimapY: minimap.y,
+      } : undefined,
     });
 
     return () => {
       window.electronAPI?.clearHighlights?.();
     };
-  }, [step, progress, scanResult, mode, debugOverlay, calibration, enabled]);
+  }, [step, progress, scanResult, mode, debugOverlay, calibration, enabled, travelBrain]);
 }

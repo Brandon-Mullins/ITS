@@ -35,10 +35,10 @@ cd RS3QuestHelperV2
 echo.
 for /f "delims=" %%V in ('node -p "require('./package.json').version"') do set APPVER=%%V
 echo Detected version: v%APPVER%
-echo %APPVER% | findstr /C:"0.7.4" >nul
+echo %APPVER% | findstr /C:"0.7.5" >nul
 if errorlevel 1 (
     echo.
-    echo ERROR: Expected v0.7.4-ATTACH-FIX but got v%APPVER%
+    echo ERROR: Expected v0.7.5-NPC-GUIDE but got v%APPVER%
     echo Something went wrong with the download.
     goto :failed
 )

@@ -194,6 +194,14 @@ export interface HighlightConfig {
   inventorySlots?: InventorySlotHighlight[];
   inventoryCalibration?: InventoryCalibration | null;
   ocrDebugBoxes?: OcrDebugBox[];
+  navigation?: {
+    npcName: string;
+    compassLabel: string;
+    compassAngle: number;
+    landmark: string;
+    minimapX: number;
+    minimapY: number;
+  };
 }
 
 export interface ElectronAPI {

@@ -58,6 +58,7 @@ const quest: StructuredQuestDefinition = {
       markers: {
         npc: 'Martin the Master Gardener',
         area: 'Draynor Village market',
+        tile: { x: 3080, y: 3257, plane: 0 },
         minimapHint: 'NPC marker on Martin',
         worldMapHint: 'Draynor Village',
       },

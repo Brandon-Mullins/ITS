@@ -25,6 +25,14 @@ export interface HighlightConfig {
   inventorySlots?: import('./inventory-slots').InventorySlotHighlight[];
   inventoryCalibration?: InventoryCalibration | null;
   ocrDebugBoxes?: OcrDebugBox[];
+  navigation?: {
+    npcName: string;
+    compassLabel: string;
+    compassAngle: number;
+    landmark: string;
+    minimapX: number;
+    minimapY: number;
+  };
 }
 
 export interface OcrDebugBox {
@@ -47,6 +55,7 @@ export interface HighlightRenderPlan {
     inventory: PixelRect;
     ocrBoxes: OcrDebugBox[];
   };
+  navigation?: HighlightConfig['navigation'];
 }
 
 export interface BuildHighlightPlanInput {
@@ -60,6 +69,7 @@ export interface BuildHighlightPlanInput {
   inventorySlots?: InventorySlotHighlight[];
   inventoryCalibration?: InventoryCalibration | null;
   ocrBoxes?: OcrDebugBox[];
+  navigation?: HighlightConfig['navigation'];
 }
 
 /** v0.6.4-HIGHLIGHT-FIX: rectangles permanently disabled — text callouts only */
@@ -76,6 +86,7 @@ export function buildHighlightPlan(input: BuildHighlightPlanInput): HighlightRen
     dialogueNext,
     inventoryCalibration,
     ocrBoxes = [],
+    navigation,
   } = input;
 
   const debugLog: string[] = [
@@ -102,6 +113,9 @@ export function buildHighlightPlan(input: BuildHighlightPlanInput): HighlightRen
     banners.push(`Use ${usePair.item} → on ${usePair.target}`);
   } else if (npc) {
     banners.push(`${npc.action}: ${npc.label}`);
+    if (navigation) {
+      banners.push(`→ Run ${navigation.compassLabel.toLowerCase()} — ${navigation.landmark}`);
+    }
   } else if (object) {
     banners.push(`${object.action}: ${object.label}`);
   }
@@ -120,7 +134,7 @@ export function buildHighlightPlan(input: BuildHighlightPlanInput): HighlightRen
     debugLog.push('No inventory/world/minimap rectangles drawn');
   }
 
-  if (banners.length === 0 && !experimentalWarning && !debugOverlay) {
+  if (banners.length === 0 && !experimentalWarning && !debugOverlay && !navigation) {
     return null;
   }
 
@@ -132,5 +146,6 @@ export function buildHighlightPlan(input: BuildHighlightPlanInput): HighlightRen
     experimentalWarning,
     debugLog,
     debugRegions: { inventory: invRect, ocrBoxes },
+    navigation,
   };
 }

@@ -32,6 +32,15 @@ function buildOverlayHtml(plan: HighlightRenderPlan): string {
     return el;
   }).join('');
 
+  let navEls = '';
+  if (plan.navigation) {
+    const n = plan.navigation;
+    navEls += `<div class="world-compass" style="transform:rotate(${n.compassAngle}deg)" title="${esc(n.compassLabel)}">⬆</div>`;
+    navEls += `<div class="world-compass-label">${esc('→ ' + n.compassLabel)}</div>`;
+    navEls += `<div class="minimap-marker" style="left:${n.minimapX.toFixed(2)}%;top:${n.minimapY.toFixed(2)}%" title="${esc(n.npcName)}"></div>`;
+    navEls += `<div class="minimap-marker-ring" style="left:${(n.minimapX - 1.8).toFixed(2)}%;top:${(n.minimapY - 1.8).toFixed(2)}%"></div>`;
+  }
+
   let debugEls = '';
   if (plan.debugOverlay) {
     const invStyle = relBox(plan.debugRegions.inventory, g);
@@ -74,7 +83,37 @@ function buildOverlayHtml(plan: HighlightRenderPlan): string {
       overflow:auto; padding:6px 8px; font-size:9px; line-height:1.35;
       background:rgba(0,0,0,0.75); color:#9f9; border:1px solid #363; z-index:30;
     }
-  </style></head><body>${experimentalWarn}${bannerEls}${debugEls}</body></html>`;
+    .world-compass {
+      position:absolute; left:50%; bottom:14%; transform-origin:center center;
+      font-size:42px; color:#ffd54a; text-shadow:0 0 12px rgba(255,213,74,0.9), 0 2px 8px #000;
+      z-index:22; margin-left:-21px; pointer-events:none;
+    }
+    .world-compass-label {
+      position:absolute; left:50%; bottom:9%; transform:translateX(-50%);
+      padding:4px 12px; border-radius:6px;
+      background:rgba(20,40,20,0.88); border:1px solid #8c4;
+      color:#cf8; font-size:12px; font-weight:700; z-index:22; white-space:nowrap;
+    }
+    .minimap-marker {
+      position:absolute; width:10px; height:10px; border-radius:50%;
+      background:#ffd54a; border:2px solid #fff;
+      box-shadow:0 0 10px rgba(255,213,74,0.95);
+      z-index:24; animation:gps-pulse 1.2s ease-in-out infinite;
+    }
+    .minimap-marker-ring {
+      position:absolute; width:14px; height:14px; border-radius:50%;
+      border:2px solid rgba(255,213,74,0.55);
+      z-index:23; animation:gps-ring 1.2s ease-in-out infinite;
+    }
+    @keyframes gps-pulse {
+      0%, 100% { transform:scale(1); opacity:1; }
+      50% { transform:scale(1.25); opacity:0.85; }
+    }
+    @keyframes gps-ring {
+      0%, 100% { transform:scale(1); opacity:0.7; }
+      50% { transform:scale(1.5); opacity:0.2; }
+    }
+  </style></head><body>${experimentalWarn}${bannerEls}${navEls}${debugEls}</body></html>`;
 }
 
 export function renderHighlightPlan(

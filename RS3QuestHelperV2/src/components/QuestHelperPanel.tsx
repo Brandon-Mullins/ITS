@@ -5,6 +5,7 @@ import { openWikiUrl } from '../services/storage';
 import { useSmartDetect } from '../hooks/useSmartDetect';
 import { resolveTravelBrain } from '../services/travel-brain';
 import GpsTeleportPanel from './GpsTeleportPanel';
+import GpsNpcGuide from './GpsNpcGuide';
 import DialogueHelper from './DialogueHelper';
 import MistakeWarningsPanel from './MistakeWarningsPanel';
 import StepDebugPanel from './StepDebugPanel';
@@ -29,6 +30,7 @@ import {
   getDialogueNextIndex,
 } from '../utils/step-analysis';
 import { useGameHighlights } from '../hooks/useGameHighlights';
+import { buildNpcNavigation } from '../utils/npc-navigation';
 
 interface QuestHelperPanelProps {
   guide: QuestGuide;
@@ -103,6 +105,11 @@ export default function QuestHelperPanel({
   const travelBrain = useMemo(
     () => resolveTravelBrain(step, playerData, highlightSettings),
     [step, playerData, highlightSettings],
+  );
+
+  const npcNav = useMemo(
+    () => buildNpcNavigation(step, travelBrain),
+    [step, travelBrain],
   );
 
   const goTo = (i: number) => onProgressChange({ currentStepIndex: i });
@@ -193,6 +200,7 @@ export default function QuestHelperPanel({
                 </div>
               )}
               <GpsTeleportPanel travel={travelBrain} />
+              {npcNav && <GpsNpcGuide guide={npcNav} />}
               <GpsHeroClickTarget cards={clickCards} />
               {useOnPairs.length > 0 && <UseOnHelper pairs={useOnPairs} />}
               <GpsConfidenceBadge
@@ -280,6 +288,11 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps & {
   const step = props.guide.steps[currentIndex];
   const stepItems = (step.stepItems?.length ?? 0) > 0 ? step.stepItems : props.guide.metadata.items;
 
+  const travelBrain = useMemo(
+    () => resolveTravelBrain(step, props.playerData ?? null, props.highlightSettings),
+    [step, props.playerData, props.highlightSettings],
+  );
+
   useEffect(() => {
     setScanResult((prev) => {
       if (!prev) return prev;
@@ -314,6 +327,7 @@ export function QuestHelperPanelWithDetect(props: QuestHelperPanelProps & {
     progress: highlightProgress,
     scanResult,
     settings: props.highlightSettings,
+    travelBrain,
   });
 
   return (

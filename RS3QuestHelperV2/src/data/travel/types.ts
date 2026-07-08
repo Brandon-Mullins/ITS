@@ -65,6 +65,7 @@ export interface NpcTravelInfo {
 export interface RankedTravelRoute {
   type: 'fastest' | 'cheapest' | 'ironman' | 'no-teleport' | 'alternative';
   label: string;
+  methodId?: string;
   methodName: string;
   methodIcon: string;
   estimatedSeconds: number;

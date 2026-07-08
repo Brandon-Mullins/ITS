@@ -85,6 +85,7 @@ function rankLocationRoutes(
     ranked.push({
       type: rt === 'alternative' ? 'alternative' : rt,
       label,
+      methodId: route.methodId,
       methodName: method.name,
       methodIcon: method.icon,
       estimatedSeconds: totalSeconds,
