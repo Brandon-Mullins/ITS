@@ -1,0 +1,53 @@
+{
+  "name": "rs3-quest-helper-v2",
+  "version": "0.7.2-FT2-STEPS-FIX",
+  "description": "RS3 Quest Helper V2 — v0.6.6-GPS-UX (GPS quest interface)",
+  "main": "dist-electron/main.js",
+  "author": "RS3 Quest Helper",
+  "license": "MIT",
+  "scripts": {
+    "clean": "node -e \"const fs=require('fs');['dist','dist-electron','node_modules/.vite'].forEach(p=>{try{fs.rmSync(p,{recursive:true,force:true})}catch(e){}});console.log('Cleaned');\"",
+    "predev": "npm run clean",
+    "dev": "vite",
+    "build": "npm run clean && tsc && vite build && tsc -p tsconfig.electron.json",
+    "electron:dev": "vite",
+    "electron:fix": "powershell -ExecutionPolicy Bypass -File fix-electron.ps1",
+    "electron:build": "npm run build && electron-builder --win",
+    "seed": "tsx scripts/seed-quests.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "screenshot-desktop": "^1.15.4",
+    "sharp": "^0.35.3",
+    "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "electron": "^35.1.5",
+    "electron-builder": "^26.0.12",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.3",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6"
+  },
+  "build": {
+    "appId": "com.rs3questhelper.v2",
+    "productName": "RS3 Quest Helper V2",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "data/**/*"
+    ],
+    "win": {
+      "target": ["nsis", "portable"]
+    }
+  }
+}
