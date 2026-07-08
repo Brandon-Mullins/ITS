@@ -7,7 +7,8 @@ const STAFF = 'Dramen staff or Lunar staff';
 const quest: StructuredQuestDefinition = {
   id: 'fairy-tale-2',
   name: 'Fairy Tale II - Cure a Queen',
-  pageName: 'Fairy Tale II - Cure a Queen',
+  pageName: 'A Fairy Tale II - Cure a Queen',
+  wikiUrl: 'https://runescape.wiki/w/A_Fairy_Tale_II_-_Cure_a_Queen',
   members: true,
   length: 'Medium',
   requirements: [

@@ -24,14 +24,30 @@ export const CURATED_QUESTS: StructuredQuestDefinition[] = [
 const byPageName = new Map<string, StructuredQuestDefinition>();
 const byId = new Map<string, StructuredQuestDefinition>();
 
+/** Prefer the guide with more steps when multiple quests share a page name */
+function registerPageName(key: string, quest: StructuredQuestDefinition): void {
+  const k = key.toLowerCase();
+  const existing = byPageName.get(k);
+  if (!existing || quest.steps.length > existing.steps.length) {
+    byPageName.set(k, quest);
+  }
+}
+
 for (const quest of CURATED_QUESTS) {
-  byPageName.set(quest.pageName.toLowerCase(), quest);
-  byPageName.set(quest.name.toLowerCase(), quest);
-  byPageName.set(normalizeQuestKey(quest.pageName), quest);
-  byPageName.set(normalizeQuestKey(quest.name), quest);
+  registerPageName(quest.pageName, quest);
+  registerPageName(quest.name, quest);
+  registerPageName(normalizeQuestKey(quest.pageName), quest);
+  registerPageName(normalizeQuestKey(quest.name), quest);
   byId.set(quest.id, quest);
   // Wiki sometimes prefixes "A "
-  byPageName.set(`a ${quest.name}`.toLowerCase(), quest);
+  registerPageName(`a ${quest.name}`, quest);
+}
+
+// Rasial roadmap uses fairy-tale-ii; full guide id is fairy-tale-2
+const fairyTaleFull = byId.get('fairy-tale-2');
+if (fairyTaleFull) {
+  byId.set('fairy-tale-ii', fairyTaleFull);
+  registerPageName('fairy-tale-ii', fairyTaleFull);
 }
 
 export function getCuratedQuest(pageNameOrId: string): StructuredQuestDefinition | null {
@@ -39,12 +55,15 @@ export function getCuratedQuest(pageNameOrId: string): StructuredQuestDefinition
   const direct = byPageName.get(key) ?? byId.get(key) ?? byPageName.get(normalizeQuestKey(pageNameOrId));
   if (direct) return direct;
 
+  let best: StructuredQuestDefinition | null = null;
   for (const quest of CURATED_QUESTS) {
     if (questNamesMatch(pageNameOrId, quest.pageName) || questNamesMatch(pageNameOrId, quest.name)) {
-      return quest;
+      if (!best || quest.steps.length > best.steps.length) {
+        best = quest;
+      }
     }
   }
-  return null;
+  return best;
 }
 
 export function getCuratedQuestById(id: string): StructuredQuestDefinition | null {

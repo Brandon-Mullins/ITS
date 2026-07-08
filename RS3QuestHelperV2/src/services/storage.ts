@@ -1,4 +1,5 @@
 import type { AppSettings, QuestGuide, QuestIndexEntry, QuestProgress } from '../types/quest';
+import { normalizeQuestKey } from '../utils/quest-keys';
 import { resolveQuestGuide } from './quest-engine';
 import { enhanceWikiGuide } from './guide-enhancer';
 
@@ -70,6 +71,55 @@ export async function refreshQuestGuide(pageName: string): Promise<QuestGuide> {
   }
 
   return enhanced;
+}
+
+function defaultProgress(pageName: string): QuestProgress {
+  return {
+    questPageName: pageName,
+    currentStepIndex: 0,
+    completedSteps: [],
+    collectedItems: [],
+    bankItems: [],
+    needGeItems: [],
+    manuallyMarkedItems: [],
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+/** Reset or clamp saved progress when the guide definition changes (e.g. 3-step stub → full guide). */
+export function reconcileQuestProgress(
+  guide: QuestGuide | null,
+  allProgress: Record<string, QuestProgress>,
+  pageName: string,
+): QuestProgress {
+  const saved =
+    allProgress[pageName] ??
+    Object.values(allProgress).find(
+      (p) =>
+        normalizeQuestKey(p.questPageName) === normalizeQuestKey(pageName) ||
+        (guide && normalizeQuestKey(p.questPageName) === normalizeQuestKey(guide.metadata.pageName)),
+    );
+
+  if (!guide || !saved) return saved ?? defaultProgress(pageName);
+
+  const guideStepIds = new Set(guide.steps.map((s) => s.id));
+  const hasStaleStubIds = saved.completedSteps.some(
+    (id) => id.endsWith('-start') || id.endsWith('-route') || id.endsWith('-body'),
+  );
+  const hasUnknownStepIds = saved.completedSteps.some((id) => !guideStepIds.has(id));
+
+  if (hasStaleStubIds || hasUnknownStepIds) {
+    return defaultProgress(pageName);
+  }
+
+  const maxIndex = Math.max(0, guide.steps.length - 1);
+  return {
+    ...saved,
+    questPageName: pageName,
+    currentStepIndex: Math.min(saved.currentStepIndex, maxIndex),
+    completedSteps: saved.completedSteps.filter((id) => guideStepIds.has(id)),
+    manuallyMarkedItems: saved.manuallyMarkedItems ?? [],
+  };
 }
 
 export async function loadAllProgress(): Promise<Record<string, QuestProgress>> {

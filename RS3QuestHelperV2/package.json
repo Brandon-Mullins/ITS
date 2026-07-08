@@ -1,6 +1,6 @@
 {
   "name": "rs3-quest-helper-v2",
-  "version": "0.7.1-FAIRY-TALE-II-POLISH",
+  "version": "0.7.2-FT2-STEPS-FIX",
   "description": "RS3 Quest Helper V2 — v0.6.6-GPS-UX (GPS quest interface)",
   "main": "dist-electron/main.js",
   "author": "RS3 Quest Helper",

@@ -6,6 +6,7 @@ import {
   loadQuestGuide,
   loadAllProgress,
   saveProgress,
+  reconcileQuestProgress,
   loadSettings,
   saveSettings,
   refreshQuestGuide,
@@ -30,7 +31,7 @@ import LayoutTestScreen from './components/LayoutTestScreen';
 import './App.css';
 
 export const V2_BUILD_ID = 'RS3QuestHelperV2';
-export const V2_VERSION = 'v0.7.1-FAIRY-TALE-II-POLISH';
+export const V2_VERSION = 'v0.7.2-FT2-STEPS-FIX';
 
 type AppView = 'search' | 'guide' | 'goals' | 'editor' | 'why' | 'settings' | 'layout-test';
 
@@ -135,18 +136,9 @@ export default function App() {
         loadAllProgress(),
       ]);
       setGuide(loadedGuide);
-      setProgress(
-        allProgress[pageName] ?? {
-          questPageName: pageName,
-          currentStepIndex: 0,
-          completedSteps: [],
-          collectedItems: [],
-          bankItems: [],
-          needGeItems: [],
-          manuallyMarkedItems: [],
-          lastUpdated: new Date().toISOString(),
-        },
-      );
+      const reconciled = reconcileQuestProgress(loadedGuide, allProgress, pageName);
+      setProgress(reconciled);
+      await saveProgress(reconciled);
       setSelectedPageName(pageName);
       setView('guide');
       handleSettingsChange({ lastQuest: pageName });

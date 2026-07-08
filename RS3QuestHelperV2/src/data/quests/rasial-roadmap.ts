@@ -88,7 +88,21 @@ function entryToGuide(entry: RasialQuestEntry): StructuredQuestDefinition {
   };
 }
 
-export const RASIAL_ROADMAP_QUESTS: StructuredQuestDefinition[] = RASIAL_QUESTS.map(entryToGuide);
+/** Quest IDs with full polished guides — skip 3-step rasial placeholders for these */
+const POLISHED_GUIDE_IDS = new Set([
+  'fairy-tale-ii',
+  'fairy-tale-2',
+  'meet-naressa',
+  'twilight-of-the-gods',
+  'aftermath',
+  'elemental-workshop-2',
+  'elemental-workshop-3',
+  'elemental-workshop-4',
+]);
+
+export const RASIAL_ROADMAP_QUESTS: StructuredQuestDefinition[] = RASIAL_QUESTS
+  .filter((entry) => !POLISHED_GUIDE_IDS.has(entry.id))
+  .map(entryToGuide);
 
 export function getRasialRoadmapQuest(pageNameOrId: string): StructuredQuestDefinition | null {
   const key = pageNameOrId.toLowerCase().trim();
