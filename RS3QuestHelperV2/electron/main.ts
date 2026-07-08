@@ -11,7 +11,7 @@ import { fetchPlayerQuestsFromApi } from './player-api';
 import type { ScreenReaderConfig } from './screen-reader';
 
 const isDev = !app.isPackaged;
-export const APP_VERSION = 'v0.7.5-NPC-GUIDE';
+export const APP_VERSION = 'v0.7.1-FAIRY-TALE-II-POLISH';
 const DEV_PORT = 5174;
 
 let mainWindow: BrowserWindow | null = null;

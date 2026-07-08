@@ -28,20 +28,30 @@ export interface QuestStep {
   sectionTitle: string;
   text: string;
   order: number;
+  objective?: string;
   travelHints: TravelHint[];
   travelRoutes?: import('./quest-data').TravelRoute[];
   fastestRoutes?: string[];
   stepItems: string[];
   recommendedItems?: string[];
   dialogueChoices: string[];
+  dialogueNeedsVerification?: boolean;
   combatWarnings: string[];
   puzzleHints?: string[];
   areaWarning?: string;
   location?: string;
+  locationDetail?: string;
   npc?: string;
   object?: string;
   completionChecks?: import('./quest-data').QuestCompletionChecks;
   markers?: import('./quest-data').QuestMarkers;
+  howToGetThere?: import('./quest-data').StepHowToGetThere;
+  lostHelp?: import('./quest-data').StepLostHelp;
+  cantFindNpc?: import('./quest-data').StepCantFindNpc;
+  useOn?: import('./quest-data').StepUseOn;
+  fairyRingCode?: string;
+  fairyRingNotes?: string[];
+  waitNote?: string;
 }
 
 export interface QuestGuide {

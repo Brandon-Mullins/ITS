@@ -6,6 +6,13 @@ import { useSmartDetect } from '../hooks/useSmartDetect';
 import { resolveTravelBrain } from '../services/travel-brain';
 import GpsTeleportPanel from './GpsTeleportPanel';
 import GpsNpcGuide from './GpsNpcGuide';
+import GpsCurrentObjective from './GpsCurrentObjective';
+import GpsHowToGetThere from './GpsHowToGetThere';
+import GpsCantFindNpc from './GpsCantFindNpc';
+import GpsLostHelp from './GpsLostHelp';
+import GpsQuestItemsOverview from './GpsQuestItemsOverview';
+import GpsFairyRingPanel from './GpsFairyRingPanel';
+import GpsDialoguePanel from './GpsDialoguePanel';
 import DialogueHelper from './DialogueHelper';
 import MistakeWarningsPanel from './MistakeWarningsPanel';
 import StepDebugPanel from './StepDebugPanel';
@@ -140,6 +147,12 @@ export default function QuestHelperPanel({
   const confComplete = confidence.filter((s) => s.status === 'detected').length;
   const confAllGood = confidence.every((s) => s.status === 'detected' || s.status === 'unknown');
 
+  const routeSummary = travelBrain.fastestAvailable
+    ? `${travelBrain.fastestAvailable.methodName}${travelBrain.fastestAvailable.walkDirection ? ` → ${travelBrain.fastestAvailable.walkDirection.toLowerCase()}` : ''}`
+    : undefined;
+
+  const [routeOpen, setRouteOpen] = useState(false);
+
   return (
     <div className="qh-panel qh-gps-panel">
       <header className="qh-header qh-gps-header">
@@ -181,6 +194,23 @@ export default function QuestHelperPanel({
             </div>
           ) : (
             <>
+              <GpsCurrentObjective
+                step={step}
+                clickCards={clickCards}
+                travelRoute={routeSummary}
+              />
+
+              {guide.itemBrain && currentIndex <= 2 && (
+                <GpsQuestItemsOverview
+                  itemBrain={guide.itemBrain}
+                  manualMarks={manualMarks}
+                  bank={bank}
+                  detected={detected}
+                  wikiUrl={metadata.wikiUrl}
+                  onOpenWiki={() => openWikiUrl(metadata.wikiUrl)}
+                />
+              )}
+
               <GpsMissingItems
                 items={stepItems}
                 manualMarks={manualMarks}
@@ -199,9 +229,35 @@ export default function QuestHelperPanel({
                   Scanning inventory… keep RS3 visible on screen.
                 </div>
               )}
+
+              {step.howToGetThere && <GpsHowToGetThere howTo={step.howToGetThere} />}
+
               <GpsTeleportPanel travel={travelBrain} />
+
+              {routeOpen && travelBrain.newbieInstructions.length > 0 && (
+                <div className="gps-card gps-route-detail">
+                  <div className="gps-card-label">Route detail</div>
+                  <ol className="gps-route-steps">
+                    {travelBrain.newbieInstructions.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {step.cantFindNpc && <GpsCantFindNpc help={step.cantFindNpc} />}
               {npcNav && <GpsNpcGuide guide={npcNav} />}
+              {step.fairyRingCode && (
+                <GpsFairyRingPanel code={step.fairyRingCode} notes={step.fairyRingNotes} />
+              )}
               <GpsHeroClickTarget cards={clickCards} />
+              {(step.dialogueChoices?.length ?? 0) > 0 && (
+                <GpsDialoguePanel
+                  choices={step.dialogueChoices}
+                  nextIndex={dialogueNext}
+                  needsVerification={step.dialogueNeedsVerification}
+                />
+              )}
               {useOnPairs.length > 0 && <UseOnHelper pairs={useOnPairs} />}
               <GpsConfidenceBadge
                 allGood={confAllGood}
@@ -210,6 +266,7 @@ export default function QuestHelperPanel({
                 scanning={scanning}
               />
               <MistakeWarningsPanel warnings={warnings} />
+              {step.lostHelp && <GpsLostHelp help={step.lostHelp} />}
               <GpsTips tips={tips} />
 
               <GpsAdvancedSection>
@@ -217,7 +274,11 @@ export default function QuestHelperPanel({
                 {onDebugToggle && (
                   <StepDebugPanel debug={debugInfo} open={debugOpen} onToggle={onDebugToggle} />
                 )}
-                <MarkerPlaceholders step={step} />
+                <MarkerPlaceholders
+                  step={step}
+                  wikiUrl={metadata.wikiUrl}
+                  onShowRoute={() => setRouteOpen((o) => !o)}
+                />
                 <ItemShoppingList
                   pageName={metadata.pageName}
                   collectedItems={effectiveInv}
