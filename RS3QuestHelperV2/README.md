@@ -46,7 +46,7 @@ cmd /c INSTALL-FRESH.bat
 
 ## Verify version
 
-Footer must show **v0.7.4-ATTACH-FIX** (not v0.7.1).
+Footer must show **v0.7.1-FAIRY-TALE-II-POLISH** (29-step Fairy Tale II guide).
 
 ```powershell
 cd C:\Users\bmull\RS3QuestHelperV2
